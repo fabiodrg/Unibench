@@ -25,23 +25,6 @@
 #define N_RUNS 1
 #endif
 
-#define __BENCHMARK(DEVICE, FUNC_CALL)                                         \
-  {                                                                            \
-    double __t_start, __t_end, __t_total = 0;                                  \
-    for (size_t i = 0; i < N_RUNS; i++) {                                      \
-      __t_start = rtclock();                                                   \
-      FUNC_CALL;                                                               \
-      __t_end = rtclock();                                                     \
-      fprintf(stdout, DEVICE " Runtime (%d): %0.6lfs\n", i,                    \
-              __t_end - __t_start);                                            \
-      __t_total += __t_end - __t_start;                                        \
-    }                                                                          \
-    fprintf(stdout, DEVICE " Runtime (avg): %0.6lfs\n", __t_total / N_RUNS);   \
-  }
-
-#define BENCHMARK_GPU(FUNC_CALL) __BENCHMARK("GPU", FUNC_CALL)
-#define BENCHMARK_CPU(FUNC_CALL) __BENCHMARK("CPU", FUNC_CALL)
-
 // define the error threshold for the results "not matching"
 #define ERROR_THRESHOLD 0.05
 
