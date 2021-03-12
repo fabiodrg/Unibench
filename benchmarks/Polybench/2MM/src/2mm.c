@@ -7,7 +7,7 @@
  * Contacts: Marcio M Pereira <mpereira@ic.unicamp.br>
  *           Rafael Cardoso F Sousa <rafael.cardoso@students.ic.unicamp.br>
  *	     Luís Felipe Mattos <ra107822@students.ic.unicamp.br>
-*/
+ */
 
 #include <assert.h>
 #include <math.h>
@@ -20,6 +20,27 @@
 #endif
 
 #include "BenchmarksUtil.h"
+
+#ifndef N_RUNS
+#define N_RUNS 1
+#endif
+
+#define __BENCHMARK(DEVICE, FUNC_CALL)                                         \
+  {                                                                            \
+    double __t_start, __t_end, __t_total = 0;                                  \
+    for (size_t i = 0; i < N_RUNS; i++) {                                      \
+      __t_start = rtclock();                                                   \
+      FUNC_CALL;                                                               \
+      __t_end = rtclock();                                                     \
+      fprintf(stdout, DEVICE " Runtime (%d): %0.6lfs\n", i,                    \
+              __t_end - __t_start);                                            \
+      __t_total += __t_end - __t_start;                                        \
+    }                                                                          \
+    fprintf(stdout, DEVICE " Runtime (avg): %0.6lfs\n", __t_total / N_RUNS);   \
+  }
+
+#define BENCHMARK_GPU(FUNC_CALL) __BENCHMARK("GPU", FUNC_CALL)
+#define BENCHMARK_CPU(FUNC_CALL) __BENCHMARK("CPU", FUNC_CALL)
 
 // define the error threshold for the results "not matching"
 #define ERROR_THRESHOLD 0.05
@@ -38,10 +59,10 @@ typedef float DATA_TYPE;
 
 /**
  * @brief Initialize operand matrices
- * 
- * @param A 
- * @param B 
- * @param D 
+ *
+ * @param A
+ * @param B
+ * @param D
  */
 void init_array(DATA_TYPE *A, DATA_TYPE *B, DATA_TYPE *D) {
   int i, j;
@@ -86,7 +107,7 @@ int compareResults(DATA_TYPE *E, DATA_TYPE *E_GPU) {
 
 /**
  * @brief Sequential CPU version to compute A.B.D matrixes
- * 
+ *
  * @param A Input
  * @param B Input
  * @param C Auxiliar
@@ -118,7 +139,7 @@ void mm2_cpu(DATA_TYPE *A, DATA_TYPE *B, DATA_TYPE *C, DATA_TYPE *D,
 
 /**
  * @brief Sequential CPU version to compute A.B.D matrixes
- * 
+ *
  * @param A Input
  * @param B Input
  * @param C Auxiliar
@@ -175,38 +196,27 @@ int main(int argc, char **argv) {
 
 // if correctness test enabled, force OMP_GPU and CPU_SEQ modes
 #ifdef RUN_TEST
-  #define OMP_GPU
-  #define CPU_SEQ
+#define OMP_GPU
+#define CPU_SEQ
 #endif
 
 // run OMP on GPU if enabled
 #ifdef OMP_GPU
   C_GPU = (DATA_TYPE *)calloc(NI * NJ, sizeof(DATA_TYPE));
   E_GPU = (DATA_TYPE *)calloc(NI * NL, sizeof(DATA_TYPE));
-
-  t_start_GPU = rtclock();
-  mm2_OMP(A, B, C_GPU, D, E_GPU);
-  t_end_GPU = rtclock();
-
-  fprintf(stdout, "GPU Runtime: %0.6lfs\n", t_end_GPU - t_start_GPU);
+  BENCHMARK_GPU(mm2_OMP(A, B, C_GPU, D, E_GPU));
 #endif
 
 #ifdef CPU_SEQ
   C = (DATA_TYPE *)calloc(NI * NJ, sizeof(DATA_TYPE));
   E = (DATA_TYPE *)calloc(NI * NL, sizeof(DATA_TYPE));
-
-  t_start = rtclock();
-  mm2_cpu(A, B, C, D, E);
-  t_end = rtclock();
-  
-  fprintf(stdout, "CPU Runtime: %0.6lfs\n", t_end - t_start);
+  BENCHMARK_CPU(mm2_cpu(A, B, C, D, E));
 #endif
 
 #ifdef RUN_TEST
   fail += compareResults(C, C_GPU);
   fail += compareResults(E, E_GPU);
 #endif
-
 
 #ifdef CPU_SEQ
   free(C_GPU);
