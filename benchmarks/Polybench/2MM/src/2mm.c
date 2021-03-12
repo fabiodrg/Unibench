@@ -24,13 +24,8 @@
 // define the error threshold for the results "not matching"
 #define ERROR_THRESHOLD 0.05
 
-/* Problem size. */
-#ifdef RUN_TEST
-#define SIZE 1100
-#elif RUN_BENCHMARK
-#define SIZE 9600
-#else
-#define SIZE 1000
+#ifndef SIZE
+#define SIZE 1024
 #endif
 
 #define NI SIZE
@@ -41,7 +36,14 @@
 /* Can switch DATA_TYPE between float and double */
 typedef float DATA_TYPE;
 
-void init_array(DATA_TYPE *A, DATA_TYPE *B, DATA_TYPE *C, DATA_TYPE *D) {
+/**
+ * @brief Initialize operand matrices
+ * 
+ * @param A 
+ * @param B 
+ * @param D 
+ */
+void init_array(DATA_TYPE *A, DATA_TYPE *B, DATA_TYPE *D) {
   int i, j;
 
   for (i = 0; i < NI; i++) {
@@ -53,12 +55,6 @@ void init_array(DATA_TYPE *A, DATA_TYPE *B, DATA_TYPE *C, DATA_TYPE *D) {
   for (i = 0; i < NK; i++) {
     for (j = 0; j < NJ; j++) {
       B[i * NK + j] = ((DATA_TYPE)i * (j + 1)) / NJ;
-    }
-  }
-
-  for (i = 0; i < NL; i++) {
-    for (j = 0; j < NJ; j++) {
-      // C[i*NL + j] = ((DATA_TYPE) i*(j+3)) / NL;
     }
   }
 
@@ -88,6 +84,15 @@ int compareResults(DATA_TYPE *E, DATA_TYPE *E_GPU) {
   return fail;
 }
 
+/**
+ * @brief Sequential CPU version to compute A.B.D matrixes
+ * 
+ * @param A Input
+ * @param B Input
+ * @param C Auxiliar
+ * @param D Input
+ * @param E Output
+ */
 void mm2_cpu(DATA_TYPE *A, DATA_TYPE *B, DATA_TYPE *C, DATA_TYPE *D,
              DATA_TYPE *E) {
   int i, j, k;
@@ -111,6 +116,15 @@ void mm2_cpu(DATA_TYPE *A, DATA_TYPE *B, DATA_TYPE *C, DATA_TYPE *D,
   }
 }
 
+/**
+ * @brief Sequential CPU version to compute A.B.D matrixes
+ * 
+ * @param A Input
+ * @param B Input
+ * @param C Auxiliar
+ * @param D Input
+ * @param E Output
+ */
 void mm2_OMP(DATA_TYPE *A, DATA_TYPE *B, DATA_TYPE *C, DATA_TYPE *D, DATA_TYPE *E) {
 
 #pragma omp target teams map(from: E[:NI*NL], C[:NI*NJ]) map(to: A[:NI*NK], B[:NK*NJ], D[:NJ*NL]) device(DEVICE_ID) 
@@ -150,40 +164,63 @@ int main(int argc, char **argv) {
   DATA_TYPE *E;
   DATA_TYPE *E_GPU;
 
-  C = (DATA_TYPE *)calloc(NI * NJ, sizeof(DATA_TYPE));
-  C_GPU = (DATA_TYPE *)calloc(NI * NJ, sizeof(DATA_TYPE));
   A = (DATA_TYPE *)malloc(NI * NK * sizeof(DATA_TYPE));
   B = (DATA_TYPE *)malloc(NK * NJ * sizeof(DATA_TYPE));
   D = (DATA_TYPE *)malloc(NJ * NL * sizeof(DATA_TYPE));
-  E = (DATA_TYPE *)calloc(NI * NL, sizeof(DATA_TYPE));
-  E_GPU = (DATA_TYPE *)calloc(NI * NL, sizeof(DATA_TYPE));
-
   fprintf(stdout,
-          "<< Linear Algebra: 2 Matrix Multiplications (D=A.B; E=C.D) >>\n");
+          "<< Linear Algebra: 2 Matrix Multiplications (C=A.B; E=C.D) >>\n");
 
-  init_array(A, B, C, D);
+  // init operand matrices
+  init_array(A, B, D);
+
+// if correctness test enabled, force OMP_GPU and CPU_SEQ modes
+#ifdef RUN_TEST
+  #define OMP_GPU
+  #define CPU_SEQ
+#endif
+
+// run OMP on GPU if enabled
+#ifdef OMP_GPU
+  C_GPU = (DATA_TYPE *)calloc(NI * NJ, sizeof(DATA_TYPE));
+  E_GPU = (DATA_TYPE *)calloc(NI * NL, sizeof(DATA_TYPE));
 
   t_start_GPU = rtclock();
   mm2_OMP(A, B, C_GPU, D, E_GPU);
   t_end_GPU = rtclock();
-  fprintf(stdout, "GPU Runtime: %0.6lfs\n", t_end_GPU - t_start_GPU);
 
-#ifdef RUN_TEST
+  fprintf(stdout, "GPU Runtime: %0.6lfs\n", t_end_GPU - t_start_GPU);
+#endif
+
+#ifdef CPU_SEQ
+  C = (DATA_TYPE *)calloc(NI * NJ, sizeof(DATA_TYPE));
+  E = (DATA_TYPE *)calloc(NI * NL, sizeof(DATA_TYPE));
+
   t_start = rtclock();
   mm2_cpu(A, B, C, D, E);
   t_end = rtclock();
+  
   fprintf(stdout, "CPU Runtime: %0.6lfs\n", t_end - t_start);
+#endif
 
+#ifdef RUN_TEST
   fail += compareResults(C, C_GPU);
   fail += compareResults(E, E_GPU);
 #endif
 
+
+#ifdef CPU_SEQ
+  free(C_GPU);
+  free(E_GPU);
+#endif
+
+#ifdef CPU_SEQ
   free(C);
+  free(E);
+#endif
+
   free(A);
   free(B);
   free(D);
-  free(E);
-  free(E_GPU);
 
   return fail;
 }
