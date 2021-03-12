@@ -1,0 +1,21 @@
+#!/bin/bash
+
+mkdir -p bin/
+
+SIZES=(512 1024 2048 4096)
+POLYBENCH=("2MM")
+
+for kernel in "${POLYBENCH[@]}"
+do
+    # compile target kernel for different sizes
+    for size in "${SIZES[@]}"
+    do
+        gcc -fopenmp -foffload=nvptx-none=-misa=sm_35 \
+            -I benchmarks/common/ \
+            -DDEVICE_ID=0 \
+            -DOMP_GPU -DCPU_SEQ \
+            -DSIZE=$size \
+            -o "bin/${kernel}_${size}" \
+            benchmarks/Polybench/$kernel/src/*.c
+    done
+done
