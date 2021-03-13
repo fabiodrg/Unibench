@@ -26,12 +26,8 @@
 #define PERCENT_DIFF_ERROR_THRESHOLD 0.05
 
 /* Problem size. */
-#ifdef RUN_TEST
-#define SIZE 1100
-#elif RUN_BENCHMARK
-#define SIZE 9600
-#else
-#define SIZE 1000
+#ifndef SIZE
+#define SIZE 1024
 #endif
 
 #define N SIZE
@@ -128,17 +124,24 @@ int main(int argc, char *argv[]) {
 
   init(A, x);
 
-  t_start = rtclock();
-  gesummv_OMP(A, B, x, y_outputFromGpu, tmp);
-  t_end = rtclock();
-  fprintf(stdout, "GPU Runtime: %0.6lfs\n", t_end - t_start);
+/** Enable all modes if correctness test mode enabled */
+#ifdef RUN_TEST
+  #define OMP_GPU
+  #define CPU_SEQ
+  #define N_RUNS 1
+#endif
+
+/** Run parallel on GPU */
+#ifdef OMP_GPU
+  BENCHMARK_GPU(gesummv_OMP(A, B, x, y_outputFromGpu, tmp));
+#endif
+
+/** Run sequential on CPU */
+#ifdef CPU_SEQ
+  BENCHMARK_CPU(gesummv(A, B, x, y, tmp));
+#endif
 
 #ifdef RUN_TEST
-  t_start = rtclock();
-  gesummv(A, B, x, y, tmp);
-  t_end = rtclock();
-  fprintf(stdout, "CPU Runtime: %0.6lfs\n", t_end - t_start);
-
   fail = compareResults(y, y_outputFromGpu);
 #endif
 
