@@ -25,12 +25,8 @@
 #define PERCENT_DIFF_ERROR_THRESHOLD 0.05
 
 /* Problem size. */
-#ifdef RUN_TEST
-#define SIZE 1100
-#elif RUN_BENCHMARK
-#define SIZE 9600
-#else
-#define SIZE 1000
+#ifndef SIZE
+#define SIZE 1024
 #endif
 
 #define N SIZE
@@ -122,6 +118,7 @@ int main() {
   double t_start, t_end;
   int fail = 0;
 
+  /** Variable declaration */
   DATA_TYPE *a;
   DATA_TYPE *x1;
   DATA_TYPE *x2;
@@ -130,6 +127,7 @@ int main() {
   DATA_TYPE *y_1;
   DATA_TYPE *y_2;
 
+  /** Memory allocation */
   a = (DATA_TYPE *)malloc(N * N * sizeof(DATA_TYPE));
   x1 = (DATA_TYPE *)malloc(N * sizeof(DATA_TYPE));
   x2 = (DATA_TYPE *)malloc(N * sizeof(DATA_TYPE));
@@ -137,26 +135,35 @@ int main() {
   x2_outputFromGpu = (DATA_TYPE *)malloc(N * sizeof(DATA_TYPE));
   y_1 = (DATA_TYPE *)malloc(N * sizeof(DATA_TYPE));
   y_2 = (DATA_TYPE *)malloc(N * sizeof(DATA_TYPE));
-
+  
   fprintf(stdout, "<< Matrix Vector Product and Transpose >>\n");
 
+  /** Initialize */
   init_array(a, x1, x2, y_1, y_2, x1_outputFromGpu, x2_outputFromGpu);
 
-  t_start = rtclock();
-  runMvt_OMP(a, x1_outputFromGpu, x2_outputFromGpu, y_1, y_2);
-  t_end = rtclock();
-  fprintf(stdout, "GPU Runtime: %0.6lfs\n", t_end - t_start);
-
+/** Enable all modes if correctness test mode enabled */
 #ifdef RUN_TEST
-  t_start = rtclock();
-  // run the algorithm on the CPU
-  runMvt(a, x1, x2, y_1, y_2);
-  t_end = rtclock();
-  fprintf(stdout, "CPU Runtime: %0.6lfs\n", t_end - t_start);
+  #define OMP_GPU
+  #define CPU_SEQ
+  #define N_RUNS 1
+#endif
 
+/** Run parallel on GPU */
+#ifdef OMP_GPU
+  BENCHMARK_GPU(runMvt_OMP(a, x1_outputFromGpu, x2_outputFromGpu, y_1, y_2));
+#endif
+
+/** Run sequential on CPU */
+#ifdef CPU_SEQ
+  BENCHMARK_CPU(runMvt(a, x1, x2, y_1, y_2));
+#endif
+
+/** Compare results if correctness test is enabled */
+#ifdef RUN_TEST
   fail = compareResults(x1, x1_outputFromGpu, x2, x2_outputFromGpu);
 #endif
 
+  /** Release memory */
   free(a);
   free(x1);
   free(x2);

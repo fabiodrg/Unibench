@@ -1,0 +1,6 @@
+\n---------------------------------------------------------
+qui 11 mar 2021 11:49:10 WET
+./benchmarks/Polybench/2MM/src/2mm.c:22:10: fatal error: 'BenchmarksUtil.h' file not found
+#include "BenchmarksUtil.h"
+         ^~~~~~~~~~~~~~~~~~
+1 error generated.

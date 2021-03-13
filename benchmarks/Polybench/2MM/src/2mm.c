@@ -21,10 +21,6 @@
 
 #include "BenchmarksUtil.h"
 
-#ifndef N_RUNS
-#define N_RUNS 1
-#endif
-
 // define the error threshold for the results "not matching"
 #define ERROR_THRESHOLD 0.05
 
@@ -177,10 +173,11 @@ int main(int argc, char **argv) {
   // init operand matrices
   init_array(A, B, D);
 
-// if correctness test enabled, force OMP_GPU and CPU_SEQ modes
+/** Enable all modes if correctness test mode enabled */
 #ifdef RUN_TEST
-#define OMP_GPU
-#define CPU_SEQ
+  #define OMP_GPU
+  #define CPU_SEQ
+  #define N_RUNS 1
 #endif
 
 // run OMP on GPU if enabled
@@ -201,6 +198,7 @@ int main(int argc, char **argv) {
   fail += compareResults(E, E_GPU);
 #endif
 
+  /** Release memory */
 #ifdef CPU_SEQ
   free(C_GPU);
   free(E_GPU);
