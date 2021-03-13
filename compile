@@ -1,15 +1,17 @@
 #!/bin/bash
 
 mkdir -p bin/
+mkdir -p logs/
 
-SIZES=(512 1024 2048 4096)
-POLYBENCH=("2MM")
+SIZES=(128 258 512 1024 2048)
+POLYBENCH=("2MM" "MVT" "GESUMMV")
 
 for kernel in "${POLYBENCH[@]}"
 do
     # compile target kernel for different sizes
     for size in "${SIZES[@]}"
     do
+        echo "Compiling ${kernel} (${size}) ..."
         gcc -fopenmp -foffload=nvptx-none=-misa=sm_35 \
             -I benchmarks/common/ \
             -DDEVICE_ID=0 \
@@ -17,5 +19,7 @@ do
             -DSIZE=$size \
             -o "bin/${kernel}_${size}" \
             benchmarks/Polybench/$kernel/src/*.c
+        echo "Running ${kernel} (${size}) ..."
+        bin/${kernel}_${size} > logs/${kernel}_${size}.log
     done
 done
