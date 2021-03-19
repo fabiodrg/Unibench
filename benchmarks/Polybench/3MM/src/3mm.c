@@ -22,15 +22,11 @@
 #include "BenchmarksUtil.h"
 
 // define the error threshold for the results "not matching"
-#define PERCENT_DIFF_ERROR_THRESHOLD 0.05
+#define ERROR_THRESHOLD 0.05
 
 /* Problem size. */
-#ifdef RUN_TEST
-#define SIZE 1100
-#elif RUN_BENCHMARK
-#define SIZE 9600
-#else
-#define SIZE 1000
+#ifndef SIZE
+#define SIZE 1024
 #endif
 
 #define NI SIZE
@@ -70,27 +66,27 @@ void init_array(DATA_TYPE *A, DATA_TYPE *B, DATA_TYPE *C, DATA_TYPE *D) {
   }
 }
 
-int compareResults(DATA_TYPE *G, DATA_TYPE *G_outputFromGpu) {
+int compareResults(DATA_TYPE *G, DATA_TYPE *G_OMP) {
   int i, j, fail;
   fail = 0;
 
   for (i = 0; i < NI; i++) {
     for (j = 0; j < NL; j++) {
-      if (percentDiff(G[i * NL + j], G_outputFromGpu[i * NL + j]) >
-          PERCENT_DIFF_ERROR_THRESHOLD) {
+      if (percentDiff(G[i * NL + j], G_OMP[i * NL + j]) >
+          ERROR_THRESHOLD) {
         fail++;
       }
     }
   }
 
   // print results
-  printf("Non-Matching CPU-GPU Outputs Beyond Error Threshold of %4.2f "
-         "Percent: %d\n",
-         PERCENT_DIFF_ERROR_THRESHOLD, fail);
+  // printf("Non-Matching CPU-GPU Outputs Beyond Error Threshold of %4.2f "
+  //        "Percent: %d\n",
+  //        ERROR_THRESHOLD, fail);
   return fail;
 }
 
-void mm3_cpu(DATA_TYPE *A, DATA_TYPE *B, DATA_TYPE *C, DATA_TYPE *D,
+void mm3(DATA_TYPE *A, DATA_TYPE *B, DATA_TYPE *C, DATA_TYPE *D,
              DATA_TYPE *E, DATA_TYPE *F, DATA_TYPE *G) {
   int i, j, k;
 
@@ -129,7 +125,11 @@ void mm3_OMP(DATA_TYPE *A, DATA_TYPE *B, DATA_TYPE *C, DATA_TYPE *D,
              DATA_TYPE *E, DATA_TYPE *F, DATA_TYPE *G) {
 
 /* E := A*B */
-#pragma omp target teams map(to : A[ : NI *NK], B[ : NK *NJ], C[ : NJ *NM], D[ : NM *NL]) map(from : E[ : NI *NJ], F[ : NJ *NL], G[ : NI *NL]) device(DEVICE_ID) thread_limit(128)
+#pragma omp target teams \
+  map(to : A[ : NI *NK], B[ : NK *NJ], C[ : NJ *NM], D[ : NM *NL]) \
+  map(from : E[ : NI *NJ], F[ : NJ *NL], G[ : NI *NL]) \
+  device(OMP_DEVICE_ID) \
+  thread_limit(128)
   {
     #pragma omp distribute parallel for collapse(2)
     for (int i = 0; i < NI; i++) {
@@ -176,9 +176,9 @@ int main(int argc, char **argv) {
   DATA_TYPE *E;
   DATA_TYPE *F;
   DATA_TYPE *G;
-  DATA_TYPE *E_outputFromGpu;
-  DATA_TYPE *F_outputFromGpu;
-  DATA_TYPE *G_outputFromGpu;
+  DATA_TYPE *E_OMP;
+  DATA_TYPE *F_OMP;
+  DATA_TYPE *G_OMP;
 
   A = (DATA_TYPE *)malloc(NI * NK * sizeof(DATA_TYPE));
   B = (DATA_TYPE *)malloc(NK * NJ * sizeof(DATA_TYPE));
@@ -187,9 +187,9 @@ int main(int argc, char **argv) {
   E = (DATA_TYPE *)malloc(NI * NJ * sizeof(DATA_TYPE));
   F = (DATA_TYPE *)malloc(NJ * NL * sizeof(DATA_TYPE));
   G = (DATA_TYPE *)malloc(NI * NL * sizeof(DATA_TYPE));
-  E_outputFromGpu = (DATA_TYPE *)calloc(NI * NJ, sizeof(DATA_TYPE));
-  F_outputFromGpu = (DATA_TYPE *)calloc(NJ * NL, sizeof(DATA_TYPE));
-  G_outputFromGpu = (DATA_TYPE *)calloc(NI * NL, sizeof(DATA_TYPE));
+  E_OMP = (DATA_TYPE *)calloc(NI * NJ, sizeof(DATA_TYPE));
+  F_OMP = (DATA_TYPE *)calloc(NJ * NL, sizeof(DATA_TYPE));
+  G_OMP = (DATA_TYPE *)calloc(NI * NL, sizeof(DATA_TYPE));
 
   fprintf(
       stdout,
@@ -197,20 +197,19 @@ int main(int argc, char **argv) {
 
   init_array(A, B, C, D);
 
-  t_start = rtclock();
-  mm3_OMP(A, B, C, D, E_outputFromGpu, F_outputFromGpu, G_outputFromGpu);
-  t_end = rtclock();
+// run OMP on GPU or CPU if enabled
+#if defined(RUN_OMP_GPU) || defined(RUN_OMP_CPU)
+  BENCHMARK_OMP(mm3_OMP(A, B, C, D, E_OMP, F_OMP, G_OMP));
+#endif
 
-  fprintf(stdout, "GPU Runtime: %0.6lfs\n", t_end - t_start);
+// run sequential version if enabled
+#ifdef RUN_CPU_SEQ
+  BENCHMARK_CPU(mm3(A, B, C, D, E, F, G));
+#endif
 
 #ifdef RUN_TEST
-  t_start = rtclock();
-  mm3_cpu(A, B, C, D, E, F, G);
-  t_end = rtclock();
-
-  fprintf(stdout, "CPU Runtime: %0.6lfs\n", t_end - t_start);
-
-  fail = compareResults(G, G_outputFromGpu);
+  fail = compareResults(G, G_OMP);
+  printf("Errors on OMP (threshold %4.2lf): %d\n", ERROR_THRESHOLD, fail);
 #endif
 
   free(A);
@@ -218,9 +217,11 @@ int main(int argc, char **argv) {
   free(C);
   free(D);
   free(E);
+  free(E_OMP);
   free(F);
+  free(F_OMP);
   free(G);
-  free(G_outputFromGpu);
+  free(G_OMP);
 
   return fail;
 }

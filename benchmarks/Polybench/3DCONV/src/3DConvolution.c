@@ -162,8 +162,6 @@ int main(int argc, char *argv[]) {
   DATA_TYPE *B_OMP;
 
   A = (DATA_TYPE *)malloc(NI * NJ * NK * sizeof(DATA_TYPE));
-  B = (DATA_TYPE *)malloc(NI * NJ * NK * sizeof(DATA_TYPE));
-  B_OMP = (DATA_TYPE *)malloc(NI * NJ * NK * sizeof(DATA_TYPE));
 
   fprintf(stdout, ">> Three dimensional (3D) convolution <<\n");
 
@@ -176,6 +174,7 @@ int main(int argc, char *argv[]) {
 
 // run sequential version if enabled
 #ifdef RUN_CPU_SEQ
+  B = (DATA_TYPE *)malloc(NI * NJ * NK * sizeof(DATA_TYPE));
   BENCHMARK_CPU(conv3D(A, B));
 #endif
 
@@ -185,9 +184,16 @@ int main(int argc, char *argv[]) {
   printf("Errors on OMP (threshold %4.2lf): %d\n", ERROR_THRESHOLD, fail);
 #endif
 
+// Release memory
   free(A);
+
+#ifdef RUN_CPU_SEQ
   free(B);
+#endif
+
+#if defined(RUN_OMP_GPU) || defined(RUN_OMP_CPU)
   free(B_OMP);
+#endif
 
   return fail;
 }
