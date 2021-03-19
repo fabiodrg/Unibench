@@ -25,13 +25,8 @@
 // define the error threshold for the results "not matching"
 #define ERROR_THRESHOLD 0.05
 
-/* Problem size. */
-#ifdef RUN_TEST
-#define SIZE 1100
-#elif RUN_BENCHMARK
-#define SIZE 9600
-#else
-#define SIZE 1000
+#ifndef SIZE
+#define SIZE 1024
 #endif
 
 #define NI SIZE
@@ -80,7 +75,7 @@ void conv2D_OMP(DATA_TYPE *A, DATA_TYPE *B) {
   c23 = +0.7;
   c33 = +0.10;
 
-  #pragma omp target teams distribute parallel for map(to : A[ : NI *NJ]) map(from : B[ : NI *NJ]) device(DEVICE_ID)
+  #pragma omp target teams distribute parallel for map(to : A[ : NI *NJ]) map(from : B[ : NI *NJ]) device(OMP_DEVICE_ID)
   for (int i = 1; i < NI - 1; ++i) {
     for (int j = 1; j < NJ - 1; ++j) {
       B[i * NJ + j] =
@@ -103,23 +98,18 @@ void init(DATA_TYPE *A) {
   }
 }
 
-int compareResults(DATA_TYPE *B, DATA_TYPE *B_GPU) {
+int compareResults(DATA_TYPE *B, DATA_TYPE *B_OMP) {
   int i, j, fail;
   fail = 0;
 
-  // Compare B and B_GPU
+  // Compare B and B_OMP
   for (i = 1; i < (NI - 1); i++) {
     for (j = 1; j < (NJ - 1); j++) {
-      if (percentDiff(B[i * NJ + j], B_GPU[i * NJ + j]) > ERROR_THRESHOLD) {
+      if (percentDiff(B[i * NJ + j], B_OMP[i * NJ + j]) > ERROR_THRESHOLD) {
         fail++;
       }
     }
   }
-
-  // Print results
-  printf("Non-Matching CPU-GPU Outputs Beyond Error Threshold of %4.2f "
-         "Percent: %d\n",
-         ERROR_THRESHOLD, fail);
 
   return fail;
 }
@@ -141,18 +131,19 @@ int main(int argc, char *argv[]) {
   // initialize the arrays
   init(A);
 
-  t_start_OMP = rtclock();
-  conv2D_OMP(A, B_OMP);
-  t_end_OMP = rtclock();
-  fprintf(stdout, "GPU Runtime: %0.6lfs\n", t_end_OMP - t_start_OMP); //);
+// run OMP on GPU or CPU if enabled
+#if defined(RUN_OMP_GPU) || defined(RUN_OMP_CPU)
+  BENCHMARK_OMP(conv2D_OMP(A, B_OMP));
+#endif
+
+// run sequential version if enabled
+#ifdef RUN_CPU_SEQ
+  BENCHMARK_CPU(conv2D(A, B));
+#endif
 
 #ifdef RUN_TEST
-  t_start = rtclock();
-  conv2D(A, B);
-  t_end = rtclock();
-  fprintf(stdout, "CPU Runtime: %0.6lfs\n", t_end - t_start); //);
-
-  compareResults(B, B_OMP);
+  fail += compareResults(B, B_OMP);
+  printf("Errors on OMP (threshold %4.2lf): %d\n", ERROR_THRESHOLD, fail);
 #endif
 
   free(A);
