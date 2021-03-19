@@ -21,15 +21,11 @@
 #include "BenchmarksUtil.h"
 
 // Error threshold for the results "not matching"
-#define PERCENT_DIFF_ERROR_THRESHOLD 0.7
+#define ERROR_THRESHOLD 0.7
 
 /* Problem size. */
-#ifdef RUN_TEST
-#define SIZE 1100
-#elif RUN_BENCHMARK
-#define SIZE 9600
-#else
-#define SIZE 1000
+#ifndef SIZE
+#define SIZE 1024
 #endif
 
 #define NX SIZE
@@ -64,13 +60,13 @@ int compareResults(DATA_TYPE *s, DATA_TYPE *s_outputFromGpu, DATA_TYPE *q,
 
   // Compare s with s_cuda
   for (i = 0; i < NX; i++) {
-    if (percentDiff(q[i], q_outputFromGpu[i]) > PERCENT_DIFF_ERROR_THRESHOLD) {
+    if (percentDiff(q[i], q_outputFromGpu[i]) > ERROR_THRESHOLD) {
       fail++;
     }
   }
 
   for (i = 0; i < NY; i++) {
-    if (percentDiff(s[i], s_outputFromGpu[i]) > PERCENT_DIFF_ERROR_THRESHOLD) {
+    if (percentDiff(s[i], s_outputFromGpu[i]) > ERROR_THRESHOLD) {
       fail++;
     }
   }
@@ -78,12 +74,12 @@ int compareResults(DATA_TYPE *s, DATA_TYPE *s_outputFromGpu, DATA_TYPE *q,
   // print results
   printf("Non-Matching CPU-GPU Outputs Beyond Error Threshold of %4.2f "
          "Percent: %d\n",
-         PERCENT_DIFF_ERROR_THRESHOLD, fail);
+         ERROR_THRESHOLD, fail);
 
   return fail;
 }
 
-void bicg_cpu(DATA_TYPE *A, DATA_TYPE *r, DATA_TYPE *s, DATA_TYPE *p,
+void bicg(DATA_TYPE *A, DATA_TYPE *r, DATA_TYPE *s, DATA_TYPE *p,
               DATA_TYPE *q) {
   int i, j;
 
@@ -108,7 +104,7 @@ void bicg_OMP(DATA_TYPE *A, DATA_TYPE *r, DATA_TYPE *s, DATA_TYPE *p,
     s[i] = 0.0;
   }
 
-  #pragma omp target teams map(to : A[ : NX *NY], p[ : NY], r[ : NX]) map(tofrom : s[ : NY], q[ : NX]) device(DEVICE_ID)
+  #pragma omp target teams map(to : A[ : NX *NY], p[ : NY], r[ : NX]) map(tofrom : s[ : NY], q[ : NX]) device(OMP_DEVICE_ID)
   {
     #pragma omp distribute parallel for private(i)
     for (j = 0; j < NY; j++) {
@@ -136,35 +132,34 @@ int main(int argc, char **argv) {
   DATA_TYPE *s;
   DATA_TYPE *p;
   DATA_TYPE *q;
-  DATA_TYPE *s_GPU;
-  DATA_TYPE *q_GPU;
+  DATA_TYPE *s_OMP;
+  DATA_TYPE *q_OMP;
 
   A = (DATA_TYPE *)malloc(NX * NY * sizeof(DATA_TYPE));
   r = (DATA_TYPE *)malloc(NX * sizeof(DATA_TYPE));
   s = (DATA_TYPE *)malloc(NY * sizeof(DATA_TYPE));
   p = (DATA_TYPE *)malloc(NY * sizeof(DATA_TYPE));
   q = (DATA_TYPE *)malloc(NX * sizeof(DATA_TYPE));
-  s_GPU = (DATA_TYPE *)malloc(NY * sizeof(DATA_TYPE));
-  q_GPU = (DATA_TYPE *)malloc(NX * sizeof(DATA_TYPE));
+  s_OMP = (DATA_TYPE *)malloc(NY * sizeof(DATA_TYPE));
+  q_OMP = (DATA_TYPE *)malloc(NX * sizeof(DATA_TYPE));
 
   fprintf(stdout, "<< BiCG Sub Kernel of BiCGStab Linear Solver >>\n");
 
   init_array(A, p, r);
 
-  t_start = rtclock();
-  bicg_OMP(A, r, s_GPU, p, q_GPU);
-  t_end = rtclock();
+// run OMP on GPU or CPU if enabled
+#if defined(RUN_OMP_GPU) || defined(RUN_OMP_CPU)
+  BENCHMARK_OMP(bicg_OMP(A, r, s_OMP, p, q_OMP));
+#endif
 
-  fprintf(stdout, "GPU Runtime: %0.6lfs\n", t_end - t_start);
+// run sequential version if enabled
+#ifdef RUN_CPU_SEQ
+  BENCHMARK_CPU(bicg(A, r, s, p, q));
+#endif
 
 #ifdef RUN_TEST
-  t_start = rtclock();
-  bicg_cpu(A, r, s, p, q);
-  t_end = rtclock();
-
-  fprintf(stdout, "CPU Runtime: %0.6lfs\n", t_end - t_start);
-
-  fail = compareResults(s, s_GPU, q, q_GPU);
+  fail = compareResults(s, s_OMP, q, q_OMP);
+  printf("Errors on OMP (threshold %4.2lf): %d\n", ERROR_THRESHOLD, fail);
 #endif
 
   free(A);
@@ -172,8 +167,8 @@ int main(int argc, char **argv) {
   free(s);
   free(p);
   free(q);
-  free(s_GPU);
-  free(q_GPU);
+  free(s_OMP);
+  free(q_OMP);
 
   return fail;
 }
