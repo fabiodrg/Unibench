@@ -11,10 +11,42 @@
 #include <time.h>
 #include <unistd.h>
 
+/** Set default number of runs per kernel/device */
 #ifndef N_RUNS
 #define N_RUNS 1
 #endif
 
+/** Test mode enabled, set the defaults */
+#ifdef RUN_TEST
+  #if ! defined (RUN_OMP_GPU) && ! defined (RUN_OMP_CPU)
+  #error "You must select one OMP version to test: RUN_OMP_GPU, RUN_OMP_CPU"
+  #endif
+
+  #define RUN_CPU_SEQ
+  #define N_RUNS 1
+  #define SIZE 1024
+#endif
+
+/** Check if at least one device is selected */
+#if ! defined(RUN_CPU_SEQ) && ! defined(RUN_OMP_GPU) && ! defined(RUN_OMP_CPU)
+#error "Select one target device! Options: RUN_CPU_SEQ, RUN_OMP_GPU, RUN_OMP_CPU"
+#endif
+
+/** Check if multiple OMP versions are selected, which is not supported */
+#if !(defined(RUN_OMP_GPU) ^ defined(RUN_OMP_CPU))
+#error "Multiple OMP versions are enabled, but only one OMP version will run (default: GPU)"
+#endif
+
+/** Set the OMP device ID, accordingly with selected version (if any) */
+#if defined(RUN_OMP_GPU)
+#define OMP_DEVICE_ID 0
+#elif defined(RUN_OMP_CPU)
+#define OMP_DEVICE_ID 1
+#else
+#define OMP_DEVICE_ID 1
+#endif
+
+/** Utility macros to run kernels N_RUNS times, collect the time, and print it */
 #define __BENCHMARK(DEVICE, FUNC_CALL)                                         \
   {                                                                            \
     double __t_start, __t_end, __t_total = 0;                                  \
@@ -29,7 +61,12 @@
     fprintf(stdout, DEVICE " Runtime (avg): %0.6lfs\n", __t_total / N_RUNS);   \
   }
 
-#define BENCHMARK_GPU(FUNC_CALL) __BENCHMARK("GPU", FUNC_CALL)
+#if defined(RUN_OMP_GPU)
+#define BENCHMARK_OMP(FUNC_CALL) __BENCHMARK("OMP GPU", FUNC_CALL)
+#elif defined(RUN_OMP_CPU)
+#define BENCHMARK_OMP(FUNC_CALL) __BENCHMARK("OMP CPU", FUNC_CALL)
+#endif
+
 #define BENCHMARK_CPU(FUNC_CALL) __BENCHMARK("CPU", FUNC_CALL)
 
 // define a small float value

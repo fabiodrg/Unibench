@@ -65,13 +65,20 @@ void init_array(DATA_TYPE *A, DATA_TYPE *B, DATA_TYPE *D) {
   }
 }
 
-int compareResults(DATA_TYPE *E, DATA_TYPE *E_GPU) {
+/**
+ * @brief 
+ * 
+ * @param E Expected result matrix 
+ * @param E_OMP Obtained matrix
+ * @return int Number of detected fails
+ */
+int compareResults(DATA_TYPE *E, DATA_TYPE *E_OMP) {
   int i, j, fail;
   fail = 0;
 
   for (i = 0; i < NL; i++) {
     for (j = 0; j < NI; j++) {
-      if (percentDiff(E[i * NI + j], E_GPU[i * NI + j]) > ERROR_THRESHOLD) {
+      if (percentDiff(E[i * NI + j], E_OMP[i * NI + j]) > ERROR_THRESHOLD) {
         fail++;
       }
     }
@@ -81,6 +88,7 @@ int compareResults(DATA_TYPE *E, DATA_TYPE *E_GPU) {
   printf("Non-Matching CPU-GPU Outputs Beyond Error Threshold of %4.2f "
          "Percent: %d\n",
          ERROR_THRESHOLD, fail);
+  
   return fail;
 }
 
@@ -93,7 +101,7 @@ int compareResults(DATA_TYPE *E, DATA_TYPE *E_GPU) {
  * @param D Input
  * @param E Output
  */
-void mm2_cpu(DATA_TYPE *A, DATA_TYPE *B, DATA_TYPE *C, DATA_TYPE *D,
+void mm2(DATA_TYPE *A, DATA_TYPE *B, DATA_TYPE *C, DATA_TYPE *D,
              DATA_TYPE *E) {
   int i, j, k;
 
@@ -117,7 +125,7 @@ void mm2_cpu(DATA_TYPE *A, DATA_TYPE *B, DATA_TYPE *C, DATA_TYPE *D,
 }
 
 /**
- * @brief Sequential CPU version to compute A.B.D matrixes
+ * @brief OMP version to compute A.B.D matrixes
  *
  * @param A Input
  * @param B Input
@@ -127,7 +135,7 @@ void mm2_cpu(DATA_TYPE *A, DATA_TYPE *B, DATA_TYPE *C, DATA_TYPE *D,
  */
 void mm2_OMP(DATA_TYPE *A, DATA_TYPE *B, DATA_TYPE *C, DATA_TYPE *D, DATA_TYPE *E) {
 
-#pragma omp target teams map(from: E[:NI*NL], C[:NI*NJ]) map(to: A[:NI*NK], B[:NK*NJ], D[:NJ*NL]) device(DEVICE_ID) 
+#pragma omp target teams map(from: E[:NI*NL], C[:NI*NJ]) map(to: A[:NI*NK], B[:NK*NJ], D[:NJ*NL]) device(OMP_DEVICE_ID) 
   {
     #pragma omp distribute parallel for collapse(2)
     for (int i = 0; i < NI; i++) {
@@ -157,61 +165,60 @@ int main(int argc, char **argv) {
   int fail = 0;
 
   DATA_TYPE *C;
-  DATA_TYPE *C_GPU;
+  DATA_TYPE *C_OMP;
   DATA_TYPE *A;
   DATA_TYPE *B;
   DATA_TYPE *D;
   DATA_TYPE *E;
-  DATA_TYPE *E_GPU;
+  DATA_TYPE *E_OMP;
 
   A = (DATA_TYPE *)malloc(NI * NK * sizeof(DATA_TYPE));
   B = (DATA_TYPE *)malloc(NK * NJ * sizeof(DATA_TYPE));
   D = (DATA_TYPE *)malloc(NJ * NL * sizeof(DATA_TYPE));
+  
   fprintf(stdout,
           "<< Linear Algebra: 2 Matrix Multiplications (C=A.B; E=C.D) >>\n");
 
   // init operand matrices
   init_array(A, B, D);
 
-/** Enable all modes if correctness test mode enabled */
-#ifdef RUN_TEST
-  #define OMP_GPU
-  #define CPU_SEQ
-  #define N_RUNS 1
+// run OMP on GPU or CPU if enabled
+#if defined(RUN_OMP_GPU) || defined(RUN_OMP_CPU)
+  C_OMP = (DATA_TYPE *)calloc(NI * NJ, sizeof(DATA_TYPE));
+  E_OMP = (DATA_TYPE *)calloc(NI * NL, sizeof(DATA_TYPE));
+  BENCHMARK_OMP(mm2_OMP(A, B, C_OMP, D, E_OMP));
 #endif
 
-// run OMP on GPU if enabled
-#ifdef OMP_GPU
-  C_GPU = (DATA_TYPE *)calloc(NI * NJ, sizeof(DATA_TYPE));
-  E_GPU = (DATA_TYPE *)calloc(NI * NL, sizeof(DATA_TYPE));
-  BENCHMARK_GPU(mm2_OMP(A, B, C_GPU, D, E_GPU));
-#endif
-
-#ifdef CPU_SEQ
+// run sequential version if enabled
+#ifdef RUN_CPU_SEQ
   C = (DATA_TYPE *)calloc(NI * NJ, sizeof(DATA_TYPE));
   E = (DATA_TYPE *)calloc(NI * NL, sizeof(DATA_TYPE));
-  BENCHMARK_CPU(mm2_cpu(A, B, C, D, E));
+  BENCHMARK_CPU(mm2(A, B, C, D, E));
 #endif
 
+// if TEST is enabled, then compare OMP results against sequential mode
 #ifdef RUN_TEST
-  fail += compareResults(C, C_GPU);
-  fail += compareResults(E, E_GPU);
+  fail += compareResults(C, C_OMP);
+  fail += compareResults(E, E_OMP);
+
+  printf("Errors on OMP (threshold %4.2lf): %d\n", ERROR_THRESHOLD, fail);
 #endif
 
   /** Release memory */
-#ifdef CPU_SEQ
-  free(C_GPU);
-  free(E_GPU);
+  free(A);
+  free(B);
+  free(D);
+
+#if defined(RUN_OMP_GPU) || defined(RUN_OMP_CPU)
+  free(C_OMP);
+  free(E_OMP);
 #endif
 
-#ifdef CPU_SEQ
+#ifdef RUN_CPU_SEQ
   free(C);
   free(E);
 #endif
 
-  free(A);
-  free(B);
-  free(D);
 
   return fail;
 }
