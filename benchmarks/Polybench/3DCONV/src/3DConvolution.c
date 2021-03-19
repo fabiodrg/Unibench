@@ -7,7 +7,7 @@
  * Contacts: Marcio M Pereira <mpereira@ic.unicamp.br>
  *           Rafael Cardoso F Sousa <rafael.cardoso@students.ic.unicamp.br>
  *	     Luís Felipe Mattos <ra107822@students.ic.unicamp.br>
-*/
+ */
 
 #include <stdarg.h>
 #include <stdio.h>
@@ -25,13 +25,8 @@
 // define the error threshold for the results "not matching"
 #define ERROR_THRESHOLD 0.5
 
-/* Problem size. */
-#ifdef RUN_TEST
-#define SIZE 1100
-#elif RUN_BENCHMARK
-#define SIZE 9600
-#else
-#define SIZE 1000
+#ifndef SIZE
+#define SIZE 1024
 #endif
 
 #define NI SIZE
@@ -93,7 +88,11 @@ void conv3D_OMP(DATA_TYPE *A, DATA_TYPE *B) {
   c23 = +7;
   c33 = +10;
 
-  #pragma omp target teams distribute parallel for map(to:A[:NI*NJ*NK]) map(from:B[:NI*NJ*NK]) device(DEVICE_ID) private(i,k)
+#pragma omp target teams distribute parallel for \
+  map(to: A[:NI * NJ * NK])       \
+  map(from: B[:NI * NJ * NK]) \
+  device(OMP_DEVICE_ID) \
+  private(i, k)
   for (j = 1; j < NJ - 1; ++j) {
     for (i = 1; i < NI - 1; ++i) {
       for (k = 1; k < NK - 1; ++k) {
@@ -130,7 +129,7 @@ void init(DATA_TYPE *A) {
   }
 }
 
-int compareResults(DATA_TYPE *B, DATA_TYPE *B_GPU) {
+int compareResults(DATA_TYPE *B, DATA_TYPE *B_OMP) {
   int i, j, k, fail;
   fail = 0;
 
@@ -139,7 +138,7 @@ int compareResults(DATA_TYPE *B, DATA_TYPE *B_GPU) {
     for (j = 1; j < NJ - 1; ++j) {
       for (k = 1; k < NK - 1; ++k) {
         if (percentDiff(B[i * (NK * NJ) + j * NK + k],
-                        B_GPU[i * (NK * NJ) + j * NK + k]) > ERROR_THRESHOLD) {
+                        B_OMP[i * (NK * NJ) + j * NK + k]) > ERROR_THRESHOLD) {
           fail++;
         }
       }
@@ -147,9 +146,9 @@ int compareResults(DATA_TYPE *B, DATA_TYPE *B_GPU) {
   }
 
   // Print results
-  printf("Non-Matching CPU-GPU Outputs Beyond Error Threshold of %4.2f "
-         "Percent: %d\n",
-         ERROR_THRESHOLD, fail);
+  // printf("Non-Matching CPU-GPU Outputs Beyond Error Threshold of %4.2f "
+  //        "Percent: %d\n",
+  //        ERROR_THRESHOLD, fail);
 
   return fail;
 }
@@ -160,33 +159,35 @@ int main(int argc, char *argv[]) {
 
   DATA_TYPE *A;
   DATA_TYPE *B;
-  DATA_TYPE *B_GPU;
+  DATA_TYPE *B_OMP;
 
   A = (DATA_TYPE *)malloc(NI * NJ * NK * sizeof(DATA_TYPE));
   B = (DATA_TYPE *)malloc(NI * NJ * NK * sizeof(DATA_TYPE));
-  B_GPU = (DATA_TYPE *)malloc(NI * NJ * NK * sizeof(DATA_TYPE));
+  B_OMP = (DATA_TYPE *)malloc(NI * NJ * NK * sizeof(DATA_TYPE));
 
   fprintf(stdout, ">> Three dimensional (3D) convolution <<\n");
 
   init(A);
 
-  t_start = rtclock();
-  conv3D_OMP(A, B_GPU);
-  t_end = rtclock();
-  fprintf(stdout, "GPU Runtime: %0.6lfs\n", t_end - t_start);
+// run OMP on GPU or CPU if enabled
+#if defined(RUN_OMP_GPU) || defined(RUN_OMP_CPU)
+  BENCHMARK_OMP(conv3D_OMP(A, B_OMP));
+#endif
 
+// run sequential version if enabled
+#ifdef RUN_CPU_SEQ
+  BENCHMARK_CPU(conv3D(A, B));
+#endif
+
+// if test mode enabled, compare the results
 #ifdef RUN_TEST
-  t_start = rtclock();
-  conv3D(A, B);
-  t_end = rtclock();
-  fprintf(stdout, "CPU Runtime: %0.6lfs\n", t_end - t_start);
-
-  fail = compareResults(B, B_GPU);
+  fail += compareResults(B, B_OMP);
+  printf("Errors on OMP (threshold %4.2lf): %d\n", ERROR_THRESHOLD, fail);
 #endif
 
   free(A);
   free(B);
-  free(B_GPU);
+  free(B_OMP);
 
   return fail;
 }

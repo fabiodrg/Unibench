@@ -141,6 +141,7 @@ int main(int argc, char *argv[]) {
   BENCHMARK_CPU(conv2D(A, B));
 #endif
 
+// if test mode enabled, compare the results
 #ifdef RUN_TEST
   fail += compareResults(B, B_OMP);
   printf("Errors on OMP (threshold %4.2lf): %d\n", ERROR_THRESHOLD, fail);
