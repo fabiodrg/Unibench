@@ -1,25 +1,64 @@
 #!/bin/bash
 
-mkdir -p bin/
-mkdir -p logs/
+SIZES=(512 1024 2048 4096)
+POLYBENCH=("2MM")
+#POLYBENCH=("2MM" "MVT" "GESUMMV")
 
-SIZES=(128 258 512 1024 2048)
-POLYBENCH=("2MM" "MVT" "GESUMMV")
+target=RUN_OMP_CPU
+target=RUN_OMP_GPU
+target=RUN_CPU_SEQ
 
-for kernel in "${POLYBENCH[@]}"
-do
-    # compile target kernel for different sizes
-    for size in "${SIZES[@]}"
+benchmark () {
+    for kernel in "${POLYBENCH[@]}"
     do
-        echo "Compiling ${kernel} (${size}) ..."
-        gcc -fopenmp -foffload=nvptx-none=-misa=sm_35 \
-            -I benchmarks/common/ \
-            -DDEVICE_ID=0 \
-            -DOMP_GPU -DCPU_SEQ \
-            -DSIZE=$size \
-            -o "bin/${kernel}_${size}" \
-            benchmarks/Polybench/$kernel/src/*.c
-        echo "Running ${kernel} (${size}) ..."
-        bin/${kernel}_${size} > logs/${kernel}_${size}.log
+        mkdir -p bin/$kernel
+        mkdir -p logs/$kernel
+        # compile target kernel for different sizes
+        for size in "${SIZES[@]}"
+        do
+            echo "Compiling ${kernel} (${size}) ..."
+            gcc -fopenmp -foffload=nvptx-none=-misa=sm_35 \
+                -I benchmarks/common/ \
+                -D$target \
+                -DSIZE=$size \
+                -DN_RUNS=3 \
+                -o "bin/${kernel}/cpu_${size}" \
+                benchmarks/Polybench/$kernel/src/*.c && \
+            echo "Running ${kernel} (${size}) ..." && \
+            bin/${kernel}/cpu_${size} > logs/${kernel}/cpu_${size}.log
+        done
     done
-done
+}
+
+# usage: ./compile test_kernel 2DCONV
+test_kernel () {
+    kernel="$1"
+
+    mkdir -p bin/test
+
+    echo "[INFO] Compiling in test mode for ${kernel} targetting GPU..." ; \
+    gcc -fopenmp -foffload=nvptx-none=-misa=sm_35 \
+        -I benchmarks/common/ \
+        -DRUN_TEST \
+        -DRUN_OMP_GPU \
+        -o "bin/test/${kernel}_omp_gpu" \
+        benchmarks/Polybench/$kernel/src/*.c && \
+    echo "[INFO] Launching..." ; \
+    bin/test/${kernel}_omp_gpu ; \
+    echo "[INFO] Completed"
+
+    echo -e "\n"
+
+    echo "[INFO] Compiling in test mode for ${kernel} targetting CPU..." && \
+    gcc -fopenmp -foffload=disable\
+        -I benchmarks/common/ \
+        -DRUN_TEST \
+        -DRUN_OMP_CPU \
+        -o "bin/test/${kernel}_omp_cpu" \
+        benchmarks/Polybench/$kernel/src/*.c && \
+    echo "[INFO] Launching..." ; \
+    bin/test/${kernel}_omp_cpu ; \
+    echo "[INFO] Completed"
+}
+
+"$@"
