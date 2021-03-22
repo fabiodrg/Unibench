@@ -33,7 +33,7 @@
 #endif
 
 /** Check if multiple OMP versions are selected, which is not supported */
-#if !(defined(RUN_OMP_GPU) ^ defined(RUN_OMP_CPU))
+#if (defined(RUN_OMP_GPU) && defined(RUN_OMP_CPU))
 #error "Multiple OMP versions are enabled, but only one OMP version will run (default: GPU)"
 #endif
 
