@@ -1,32 +1,85 @@
 #!/bin/bash
 
 SIZES=(512 1024 2048 4096)
-POLYBENCH=("2MM")
+#POLYBENCH=( "2DCONV" "2MM" "3DCONV" "3MM" "ATAX" "BICG" )
+POLYBENCH=( "2DCONV" "2MM" "3DCONV" "3MM" "ATAX" "BICG" )
 #POLYBENCH=("2MM" "MVT" "GESUMMV")
 
 target=RUN_OMP_CPU
 target=RUN_OMP_GPU
 target=RUN_CPU_SEQ
 
-benchmark () {
+benchmark_cpu () {
     for kernel in "${POLYBENCH[@]}"
     do
+        echo "[INFO] Starting Polybench/${kernel}"
         mkdir -p bin/$kernel
         mkdir -p logs/$kernel
         # compile target kernel for different sizes
         for size in "${SIZES[@]}"
         do
-            echo "Compiling ${kernel} (${size}) ..."
-            gcc -fopenmp -foffload=nvptx-none=-misa=sm_35 \
+            echo "[INFO] Compiling ${kernel} (${size}) ..."
+            gcc \
                 -I benchmarks/common/ \
                 -D$target \
                 -DSIZE=$size \
                 -DN_RUNS=3 \
                 -o "bin/${kernel}/cpu_${size}" \
                 benchmarks/Polybench/$kernel/src/*.c && \
-            echo "Running ${kernel} (${size}) ..." && \
-            bin/${kernel}/cpu_${size} > logs/${kernel}/cpu_${size}.log
+            echo "[INFO] Running ${kernel} (${size}) ..." && \
+            timeout 10m stdbuf -oL bin/${kernel}/cpu_${size} > logs/${kernel}/cpu_${size}.log
         done
+        echo "[INFO] Completed Polybench/${kernel}"
+    done
+}
+
+benchmark_omp_gpu () {
+    for kernel in "${POLYBENCH[@]}"
+    do
+        echo "[INFO] Starting Polybench/${kernel}"
+        mkdir -p bin/$kernel
+        mkdir -p logs/$kernel
+        # compile target kernel for different sizes
+        for size in "${SIZES[@]}"
+        do
+            file_prefix=omp_gpu_${size}
+            echo "[INFO] Compiling ${kernel} (${size}) ..."
+            gcc -fopenmp -foffload=nvptx-none=-misa=sm_35 -foffload=-lm \
+                -I benchmarks/common/ \
+                -DRUN_OMP_GPU \
+                -DSIZE=$size \
+                -DN_RUNS=3 \
+                -o "bin/${kernel}/${file_prefix}" \
+                benchmarks/Polybench/$kernel/src/*.c && \
+            echo "[INFO] Running ${kernel} (${size}) ..." && \
+            timeout 15m stdbuf -oL bin/${kernel}/${file_prefix} > logs/${kernel}/${file_prefix}.log
+        done
+        echo "[INFO] Completed Polybench/${kernel}"
+    done
+}
+
+benchmark_omp_cpu () {
+    for kernel in "${POLYBENCH[@]}"
+    do
+        echo "[INFO] Starting Polybench/${kernel}"
+        mkdir -p bin/$kernel
+        mkdir -p logs/$kernel
+        # compile target kernel for different sizes
+        for size in "${SIZES[@]}"
+        do
+            file_prefix=omp_cpu_${size}
+            echo "[INFO] Compiling ${kernel} (${size}) ..."
+            gcc -fopenmp -foffload=disable \
+                -I benchmarks/common/ \
+                -DRUN_OMP_CPU \
+                -DSIZE=$size \
+                -DN_RUNS=3 \
+                -o "bin/${kernel}/${file_prefix}" \
+                benchmarks/Polybench/$kernel/src/*.c && \
+            echo "[INFO] Running ${kernel} (${size}) ..." && \
+            timeout 15m stdbuf -oL bin/${kernel}/${file_prefix} > logs/${kernel}/${file_prefix}.log
+        done
+        echo "[INFO] Completed Polybench/${kernel}"
     done
 }
 
@@ -37,8 +90,9 @@ test_kernel () {
     mkdir -p bin/test
 
     echo "[INFO] Compiling in test mode for ${kernel} targetting GPU..." ; \
-    gcc -fopenmp -foffload=nvptx-none=-misa=sm_35 \
+    gcc -fopenmp -foffload=nvptx-none=-misa=sm_35 -foffload=-lm \
         -I benchmarks/common/ \
+        -lm \
         -DRUN_TEST \
         -DRUN_OMP_GPU \
         -o "bin/test/${kernel}_omp_gpu" \
@@ -50,8 +104,9 @@ test_kernel () {
     echo -e "\n"
 
     echo "[INFO] Compiling in test mode for ${kernel} targetting CPU..." && \
-    gcc -fopenmp -foffload=disable\
+    gcc -fopenmp -foffload=disable -foffload=-lm \
         -I benchmarks/common/ \
+        -lm \
         -DRUN_TEST \
         -DRUN_OMP_CPU \
         -o "bin/test/${kernel}_omp_cpu" \
