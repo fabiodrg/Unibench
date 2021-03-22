@@ -77,6 +77,7 @@ void conv2D_OMP(DATA_TYPE *A, DATA_TYPE *B) {
 
   #pragma omp target teams distribute parallel for map(to : A[ : NI *NJ]) map(from : B[ : NI *NJ]) device(OMP_DEVICE_ID)
   for (int i = 1; i < NI - 1; ++i) {
+    LLVM_MCA_BEGIN("loop_j");
     for (int j = 1; j < NJ - 1; ++j) {
       B[i * NJ + j] =
           c11 * A[(i - 1) * NJ + (j - 1)] + c12 * A[(i + 0) * NJ + (j - 1)] +
@@ -85,6 +86,7 @@ void conv2D_OMP(DATA_TYPE *A, DATA_TYPE *B) {
           c31 * A[(i - 1) * NJ + (j + 1)] + c32 * A[(i + 0) * NJ + (j + 1)] +
           c33 * A[(i + 1) * NJ + (j + 1)];
     }
+    LLVM_MCA_END("loop_j");
   }
 }
 

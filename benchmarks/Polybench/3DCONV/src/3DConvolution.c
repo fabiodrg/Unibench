@@ -94,6 +94,7 @@ void conv3D_OMP(DATA_TYPE *A, DATA_TYPE *B) {
   device(OMP_DEVICE_ID) \
   private(i, k)
   for (j = 1; j < NJ - 1; ++j) {
+    LLVM_MCA_BEGIN("kernel");
     for (i = 1; i < NI - 1; ++i) {
       for (k = 1; k < NK - 1; ++k) {
         B[i * (NK * NJ) + j * NK + k] =
@@ -114,6 +115,7 @@ void conv3D_OMP(DATA_TYPE *A, DATA_TYPE *B) {
             c33 * A[(i + 1) * (NK * NJ) + (j + 1) * NK + (k + 1)];
       }
     }
+    LLVM_MCA_END("kernel");
   }
 }
 

@@ -108,9 +108,11 @@ void bicg_OMP(DATA_TYPE *A, DATA_TYPE *r, DATA_TYPE *s, DATA_TYPE *p,
   {
     #pragma omp distribute parallel for private(i)
     for (j = 0; j < NY; j++) {
+      LLVM_MCA_BEGIN("kernel");
       for (i = 0; i < NX; i++) {
         s[j] = s[j] + r[i] * A[i * NY + j];
       }
+      LLVM_MCA_END("kernel");
     }
 
     #pragma omp distribute parallel for private(j)

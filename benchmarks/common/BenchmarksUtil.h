@@ -69,6 +69,14 @@
 
 #define BENCHMARK_CPU(FUNC_CALL) __BENCHMARK("CPU", FUNC_CALL)
 
+#ifdef LLVM_MCA
+#define LLVM_MCA_BEGIN(name) __asm volatile("# LLVM-MCA-BEGIN " name)
+#define LLVM_MCA_END(name) __asm volatile("# LLVM-MCA-END " name)
+#else
+#define LLVM_MCA_BEGIN(name) 
+#define LLVM_MCA_END(name) 
+#endif
+
 // define a small float value
 #define SMALL_FLOAT_VAL 0.00000001f
 

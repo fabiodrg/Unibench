@@ -139,12 +139,14 @@ void mm2_OMP(DATA_TYPE *A, DATA_TYPE *B, DATA_TYPE *C, DATA_TYPE *D, DATA_TYPE *
   {
     #pragma omp distribute parallel for collapse(2)
     for (int i = 0; i < NI; i++) {
+      LLVM_MCA_BEGIN("kernel");
       for (int j = 0; j < NJ; j++) {
         C[i * NJ + j] = 0.0;
         for (int k = 0; k < NK; ++k) {
           C[i * NJ + j] += A[i * NK + k] * B[k * NJ + j];
         }
       }
+      LLVM_MCA_END("kernel");
     }
 
     #pragma omp distribute parallel for collapse(2)

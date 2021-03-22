@@ -98,10 +98,12 @@ void atax_OMP(DATA_TYPE *A, DATA_TYPE *x, DATA_TYPE *y, DATA_TYPE *tmp) {
   {
     #pragma omp distribute parallel for
     for (int i = 0; i < NX; i++) {
+      LLVM_MCA_BEGIN("kernel");
       tmp[i] = 0;
       for (int j = 0; j < NY; j++) {
         tmp[i] += A[i * NY + j] * x[j];
       }
+      LLVM_MCA_END("kernel");
     }
 
     // Note that the Loop has been reversed

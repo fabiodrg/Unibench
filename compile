@@ -83,6 +83,18 @@ benchmark_omp_cpu () {
     done
 }
 
+llvm_mca () {
+    for kernel in "${POLYBENCH[@]}"
+    do
+        echo "[INFO] Getting LLVM-MCA data from Polybench/${kernel}"
+        mkdir -p logs/$kernel
+        gcc -S benchmarks/Polybench/${kernel}/src/*.c -I benchmarks/common/ -DRUN_CPU_SEQ -DLLVM_MCA -o /dev/stdout \
+            | llvm-mca --iterations=1 > logs/${kernel}/llvm_mca_1.log
+        gcc -S benchmarks/Polybench/${kernel}/src/*.c -I benchmarks/common/ -DRUN_CPU_SEQ -DLLVM_MCA -o /dev/stdout \
+            | llvm-mca --iterations=128 > logs/${kernel}/llvm_mca_128.log
+    done
+}
+
 # usage: ./compile test_kernel 2DCONV
 test_kernel () {
     kernel="$1"
