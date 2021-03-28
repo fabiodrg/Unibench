@@ -1,95 +1,100 @@
-CC=clang
+# README
+# 
+# Environment variables
+# BENCH_NAME: The benchmark suite name and the kernel name. Should match a directory in ./benchmarks. E.g. Polybench/2MM
+# SIZE: The problem dimensions (e.g. 512, 1024, 2048, 4096)
+# 
 
-PLATFORM_MK=./common/c.mk
-include $(PLATFORM_MK)
+#############################################
+# Directories and filenames customization
+#############################################
 
-BENCH_MK=$(BENCH_DIR)/../Makefile
-include $(BENCH_MK)
+# root directory for the different benchmark suites
+ROOT_BENCH_DIR=./benchmarks
 
-SRC_MK=$(BENCH_DIR)/src/Makefile
-include $(SRC_MK)
+# full path for the target benchmark suite's kernel
+BENCH_DIR=$(ROOT_BENCH_DIR)/$(BENCH_NAME)
 
-LD_PRELOAD=$(GOMP_LIB)
+# parent directory for storing binaries
+BIN_DIR=./bin
 
-ifeq ($(OMP_LIB),gomp)
-LD_PRELOAD=$(GOMP_LIB)
-endif
+# executable filenames
+CPU_SEQ_BIN=$(BIN_DIR)/$(BENCH_NAME)/cpu_$(SIZE)
+OMP_CPU_BIN=$(BIN_DIR)/$(BENCH_NAME)/omp_cpu_$(SIZE)
+OMP_GPU_BIN=$(BIN_DIR)/$(BENCH_NAME)/omp_gpu_$(SIZE)
 
-ifeq ($(OMP_LIB),iomp)
-LD_PRELOAD=$(IOMP_LIB)
-endif
+# parent directory for storing executables output
+LOGS_DIR=./logs
 
-ifeq ($(OMP_LIB),mtsp)
-LD_PRELOAD=$(MTSP_LIB)
-endif
+#############################################
+# Kernel custom options
+#############################################
 
-$(BENCH_DIR)/build/$(BENCH_NAME):
-ifeq ($(TGT_ARCH),gpu)
-	make compile
-else
-	make compileSimple
-endif
+# Execute the Makefile for the selected kernel
+# Specifies the source files for compilation as well as additional flags (e.g. math libraries)
+include $(BENCH_DIR)/src/Makefile
 
-$(BENCH_DIR)/build:
-	mkdir $(BENCH_DIR)/build
+#############################################
+# Compiler Options
+#############################################
 
-$(BENCH_DIR)/log:
-	mkdir $(BENCH_DIR)/log
+# compiler
+CC=gcc
 
-cleanbin:
-	rm -rf $(BENCH_DIR)/build/*
+# common flags for the three targets: sequential CPU, parallel CPU, parallel GPU
+COMMON_FLAGS=-I $(ROOT_BENCH_DIR)/common
 
-cleanlog:
-	rm -rf $(BENCH_DIR)/log/*
+# specific compiler flags for sequential CPU
+CPU_SEQ_FLAGS=
+# specific compiler flags for parallel CPU target
+OMP_CPU_FLAGS=-fopenmp -foffload=disable
+# specific compiler flags for parallel GPU target
+OMP_GPU_FLAGS=-fopenmp -foffload=nvptx-none=-misa=sm_35
 
-cleanall: cleanbin cleanlog
 
-compile:
-ifeq ($(TGT_ARCH),gpu)
-	make compileGPU
-else
-	make compileSimple
-endif
+#############################################
+# Default target
+#############################################
 
-compileSimple: $(BENCH_DIR)/build $(BENCH_DIR)/log
-	echo "Compiling" $(BENCH_NAME); \
-	echo "\n---------------------------------------------------------" >> $(BENCH_DIR)/log/$(BENCH_NAME).compile; \
-	date >> $(BENCH_DIR)/log/$(BENCH_NAME).compile; \
-	echo "$(CC) $(COMMON_FLAGS) $(BENCH_FLAGS) $(AUX_SRC) $(SRC_OBJS) -o $(BENCH_DIR)/build/$(BENCH_NAME)" 2>> $(BENCH_DIR)/log/$(NAME).compile; \
-	$(CC) $(COMMON_FLAGS) $(BENCH_FLAGS) $(AUX_SRC) $(SRC_OBJS) -o $(BENCH_DIR)/build/$(BENCH_NAME) 2>> $(BENCH_DIR)/log/$(BENCH_NAME).compile; \
-	echo ""
+all: compile-cpu compile-omp-cpu compile-omp-gpu
 
-compileGPU: $(BENCH_DIR)/build $(BENCH_DIR)/log
-	echo "Compiling" $(BENCH_NAME); \
-	echo "\n---------------------------------------------------------" >> $(BENCH_DIR)/log/$(BENCH_NAME).compile; \
-	date >> $(BENCH_DIR)/log/$(BENCH_NAME).compile; \
-	echo "$(CC) $(COMMON_FLAGS) $(BENCH_FLAGS) $(AUX_SRC) $(SRC_OBJS) -o $(BENCH_DIR)/build/$(BENCH_NAME)" 2>> $(BENCH_DIR)/log/$(NAME).compile; \
-	$(CC) $(COMMON_FLAGS) $(BENCH_FLAGS) $(AUX_SRC) $(SRC_OBJS) -o $(BENCH_DIR)/build/$(BENCH_NAME) 2>> $(BENCH_DIR)/log/$(BENCH_NAME).compile; \
-	rm -f _kernel*.cl~
-	mv _kernel* $(BENCH_DIR)/build/; \
-	echo ""
+#############################################
+# Directory setup targets
+#############################################
 
-run: $(BENCH_DIR)/build/$(BENCH_NAME)
-	cd $(BENCH_DIR)/build;\
-	echo "Running" $(BENCH_NAME); \
-	echo "./$(BENCH_NAME) $(INPUT_FLAGS)" >> ../log/$(BENCH_NAME).execute; \
-	./$(BENCH_NAME) $(INPUT_FLAGS) > ../log/$(BENCH_NAME).tmp; \
-	cat ../log/$(BENCH_NAME).tmp; \
-	cat ../log/$(BENCH_NAME).tmp >> ../log/$(BENCH_NAME).execute; \
-	rm ../log/$(BENCH_NAME).tmp; \
-	echo "\n"
+# creates the directory for binaries
+mkdir-bin:
+	mkdir -p $(BIN_DIR)/$(BENCH_NAME)
 
-runmali: $(BENCH_DIR)/build/$(BENCH_NAME)
-	cd $(BENCH_DIR)/build;\
-	echo "Copying files to device"; \
-	adb shell "mkdir -p /data/local/tmp/$(BENCH_DIR)"; \
-	adb push ../build /data/local/tmp/$(BENCH_DIR)/build; \
-	adb push ../input /data/local/tmp/$(BENCH_DIR)/input; \
-	echo "\nRunning" $(BENCH_NAME); \
-	echo "./$(BENCH_NAME) $(INPUT_FLAGS)" >> ../log/$(BENCH_NAME).execute; \
-	adb shell "cd /data/local/tmp/$(BENCH_DIR)/build; ./$(BENCH_NAME) $(INPUT_FLAGS) > $(BENCH_NAME).tmp"; \
-	adb pull "/data/local/tmp/$(BENCH_DIR)/build/$(BENCH_NAME).tmp" ../log/$(BENCH_NAME).tmp; \
-	cat ../log/$(BENCH_NAME).tmp; \
-	cat ../log/$(BENCH_NAME).tmp >> ../log/$(BENCH_NAME).execute; \
-	rm ../log/$(BENCH_NAME).tmp; \
-	echo "\n"
+# creates the directory for logs
+mkdir-logs:
+	mkdir -p $(LOGS_DIR)/$(BENCH_NAME)
+
+#############################################
+# Compilation targets
+#############################################
+
+# compiles the sequential CPU version
+compile-cpu: mkdir-bin
+	$(CC) $(COMMON_FLAGS) $(CPU_SEQ_FLAGS) $(BENCH_FLAGS) $(SRC_OBJS) -DRUN_CPU_SEQ -DSIZE=$(SIZE) -o $(CPU_SEQ_BIN)
+
+# compiles the parallel GPU version
+compile-omp-gpu: mkdir-bin
+	$(CC) $(COMMON_FLAGS) $(OMP_CPU_FLAGS) $(BENCH_FLAGS) $(SRC_OBJS) -DRUN_OMP_GPU -DSIZE=$(SIZE) -o $(OMP_CPU_BIN)
+
+# compiles the parallel CPU version
+compile-omp-cpu: mkdir-bin
+	$(CC) $(COMMON_FLAGS) $(OMP_GPU_FLAGS) $(BENCH_FLAGS) $(SRC_OBJS) -DRUN_OMP_CPU -DSIZE=$(SIZE) -o $(OMP_GPU_BIN)
+
+#############################################
+# Run targets
+#############################################
+
+run-cpu: mkdir-logs compile-cpu
+	$(CPU_SEQ_BIN)
+
+run-omp-gpu: mkdir-logs compile-omp-gpu
+	$(OMP_CPU_BIN)
+
+run-omp-cpu: mkdir-logs compile-omp-cpu
+	$(OMP_GPU_BIN)
