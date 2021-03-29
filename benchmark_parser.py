@@ -10,6 +10,15 @@ LOG_OMP_CPU_PREFIX="omp_cpu"
 LOG_OMP_GPU_PREFIX="omp_gpu"
 
 KERNEL_SIZES=(512, 1024, 2048, 4096)
+KERNEL_SIZES_NAMES = {
+    512: 'Mini',
+    1024: 'Small',
+    2048: 'Medium',
+    4096: 'Large',
+}
+
+# number of decimal digits to represent time measurements
+FLOAT_DIGITS=6
 
 def parse_kernel_log(filepath):
     try:
@@ -20,7 +29,7 @@ def parse_kernel_log(filepath):
             times = [float(t) for t in times]
             # return the average time if non-empty list
             if times:
-                return sum(times)/len(times)
+                return format(sum(times)/len(times), f'.{FLOAT_DIGITS}f')
             else:
                 return None
     except:
@@ -55,10 +64,10 @@ def dump_csv(times):
         writer = csv.writer(f, delimiter=',')
 
         # product of kernel sizes and type of target device
-        cols = itertools.product(KERNEL_SIZES, ('cpu', 'omp_cpu', 'omp_gpu'))
+        cols = itertools.product(KERNEL_SIZES, ('cpu', 'ompCpu', 'ompGpu'))
         
         # write the header
-        header = ['kernel_name'] + [f'{target}_{size}' for size, target in cols]
+        header = ['kernelName'] + [f'{target}{KERNEL_SIZES_NAMES[size]}' for size, target in cols]
         writer.writerow(header)
 
         # for each kernel, dump the timings
