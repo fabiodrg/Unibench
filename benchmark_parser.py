@@ -44,9 +44,9 @@ def parse_all_kernel_logs(path):
     
     for s in KERNEL_SIZES:
         times[s] = {
-            'cpu': parse_kernel_log(f'{path}/{LOG_CPU_PREFIX}_{s}.log'),
-            'omp_cpu': parse_kernel_log(f'{path}/{LOG_OMP_CPU_PREFIX}_{s}.log'),
-            'omp_gpu': parse_kernel_log(f'{path}/{LOG_OMP_GPU_PREFIX}_{s}.log'),
+            'cpu': parse_kernel_log(f'{path}/{LOG_CPU_PREFIX}_{s}.log') or "nan",
+            'omp_cpu': parse_kernel_log(f'{path}/{LOG_OMP_CPU_PREFIX}_{s}.log') or "nan",
+            'omp_gpu': parse_kernel_log(f'{path}/{LOG_OMP_GPU_PREFIX}_{s}.log') or "nan",
         }
     
     return times
