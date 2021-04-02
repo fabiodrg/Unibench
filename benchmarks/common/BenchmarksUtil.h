@@ -24,7 +24,7 @@
 
   #define RUN_CPU_SEQ
   #define N_RUNS 1
-  #define SIZE 1024
+  #define SIZE 512
 #endif
 
 /** Check if at least one device is selected */
