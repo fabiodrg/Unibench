@@ -17,13 +17,6 @@ KERNEL_SIZES_NAMES = {
     4096: 'Large',
 }
 
-# number of decimal digits to represent time measurements
-FLOAT_DIGITS=6
-
-# formats floating point numbers as strings, with the number of decimal digits
-# set in 'FLOAT_DIGITS'
-format_float = lambda f: format(f, f'.{FLOAT_DIGITS}f')
-
 
 def get_speedup(cpu_t:float, acc_t:float) -> float:
     """Computes the speedup in offloading to accelerator compared to sequential
@@ -87,7 +80,11 @@ def parse_all_kernel_logs(path:str) -> dict:
     """
     # dict for storing the times per kernel sizes
     times = dict()
-    my_format = lambda fp_num: format_float(fp_num) if fp_num else "nan"
+
+    # formats floating point numbers as strings, with the number of decimal digits
+    # set in 'FLOAT_DIGITS'
+    format_float = lambda f, n: format(f, f'.{n}f') if f else "nan"
+
     for s in KERNEL_SIZES:
         cpu_t = parse_kernel_log(f'{path}/{LOG_CPU_PREFIX}_{s}.log')
         omp_cpu_t = parse_kernel_log(f'{path}/{LOG_OMP_CPU_PREFIX}_{s}.log')
@@ -96,11 +93,11 @@ def parse_all_kernel_logs(path:str) -> dict:
         speedup_omp_gpu = get_speedup(cpu_t, omp_gpu_t)
         
         times[s] = {
-            'cpu': my_format(cpu_t),
-            'omp_cpu': my_format(omp_cpu_t),
-            'omp_gpu': my_format(omp_gpu_t),
-            'speedup_omp_cpu':  my_format(speedup_omp_cpu),
-            'speedup_omp_gpu': my_format(speedup_omp_gpu),
+            'cpu': format_float(cpu_t, 6),
+            'omp_cpu': format_float(omp_cpu_t, 6),
+            'omp_gpu': format_float(omp_gpu_t, 6),
+            'speedup_omp_cpu':  format_float(speedup_omp_cpu, 2),
+            'speedup_omp_gpu': format_float(speedup_omp_gpu, 2),
         }
     
     return times
