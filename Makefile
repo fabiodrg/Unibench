@@ -92,14 +92,14 @@ compile-cpu: mkdir-bin
 	$(CC) $(COMMON_FLAGS) $(CPU_SEQ_FLAGS) $(BENCH_FLAGS) $(SRC_OBJS) -DRUN_CPU_SEQ -DSIZE=$(SIZE) -DN_RUNS=$(RUNS) -o $(CPU_SEQ_BIN)
 
 # compiles the parallel GPU version
-compile-omp-cpu: mkdir-bin
+compile-omp-gpu: mkdir-bin
 	@echo "[INFO] Compiling $(BENCH_NAME) [OMP GPU, SIZE=$(SIZE)]"
-	$(CC) $(COMMON_FLAGS) $(OMP_CPU_FLAGS) $(BENCH_FLAGS) $(SRC_OBJS) -DRUN_OMP_GPU -DSIZE=$(SIZE) -DN_RUNS=$(RUNS) -o $(OMP_CPU_BIN)
+	$(CC) $(COMMON_FLAGS) $(OMP_GPU_FLAGS) $(BENCH_FLAGS) $(SRC_OBJS) -DRUN_OMP_GPU -DSIZE=$(SIZE) -DN_RUNS=$(RUNS) -o $(OMP_GPU_BIN)
 
 # compiles the parallel CPU version
-compile-omp-gpu: mkdir-bin
+compile-omp-cpu: mkdir-bin
 	@echo "[INFO] Compiling $(BENCH_NAME) [OMP CPU, SIZE=$(SIZE)]"
-	$(CC) $(COMMON_FLAGS) $(OMP_GPU_FLAGS) $(BENCH_FLAGS) $(SRC_OBJS) -DRUN_OMP_CPU -DSIZE=$(SIZE) -DN_RUNS=$(RUNS) -o $(OMP_GPU_BIN)
+	$(CC) $(COMMON_FLAGS) $(OMP_CPU_FLAGS) $(BENCH_FLAGS) $(SRC_OBJS) -DRUN_OMP_CPU -DSIZE=$(SIZE) -DN_RUNS=$(RUNS) -o $(OMP_CPU_BIN)
 
 #############################################
 # Run targets
@@ -111,11 +111,11 @@ run-cpu: mkdir-logs compile-cpu
 
 run-omp-gpu: mkdir-logs compile-omp-gpu
 	@echo "[INFO] Running $(BENCH_NAME) [OMP GPU, SIZE=$(SIZE)]"
-	$(OMP_CPU_BIN) > $(OMP_CPU_LOG)
+	$(OMP_GPU_BIN) > $(OMP_GPU_LOG)
 
 run-omp-cpu: mkdir-logs compile-omp-cpu
 	@echo "[INFO] Running $(BENCH_NAME) [OMP CPU, SIZE=$(SIZE)]"
-	$(OMP_GPU_BIN) > $(OMP_GPU_LOG)
+	$(OMP_CPU_BIN) > $(OMP_CPU_LOG)
 
 #############################################
 # Run test mode
