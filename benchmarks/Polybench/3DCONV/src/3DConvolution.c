@@ -171,6 +171,7 @@ int main(int argc, char *argv[]) {
 
 // run OMP on GPU or CPU if enabled
 #if defined(RUN_OMP_GPU) || defined(RUN_OMP_CPU)
+  B_OMP = (DATA_TYPE *)malloc(NI * NJ * NK * sizeof(DATA_TYPE));
   BENCHMARK_OMP(conv3D_OMP(A, B_OMP));
 #endif
 
