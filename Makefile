@@ -7,8 +7,8 @@
 
 check-def-var = $(if $(strip $($1)),,$(error "$1" is not defined))
 $(call check-def-var,BENCH_NAME)
-$(call check-def-var,SIZE)
-$(call check-def-var,RUNS)
+#$(call check-def-var,SIZE)
+#$(call check-def-var,RUNS)
 
 #############################################
 # Directories and filenames customization
@@ -116,3 +116,23 @@ run-omp-gpu: mkdir-logs compile-omp-gpu
 run-omp-cpu: mkdir-logs compile-omp-cpu
 	@echo "[INFO] Running $(BENCH_NAME) [OMP CPU, SIZE=$(SIZE)]"
 	$(OMP_GPU_BIN) > $(OMP_GPU_LOG)
+
+#############################################
+# Run test mode
+#############################################
+test-cpu:
+	@echo "[INFO] Compiling $(BENCH_NAME) [OMP CPU, Test mode]"
+	$(CC) $(COMMON_FLAGS) $(OMP_CPU_FLAGS) $(BENCH_FLAGS) $(SRC_OBJS) -DRUN_OMP_CPU -DRUN_TEST -o test_cpu
+	@echo "[INFO] Launching..."
+	./test_cpu
+	@echo "[INFO] Completed"
+
+test-gpu:
+	@echo "[INFO] Compiling $(BENCH_NAME) [OMP GPU, Test mode]"
+	$(CC) $(COMMON_FLAGS) $(OMP_GPU_FLAGS) $(BENCH_FLAGS) $(SRC_OBJS) -DRUN_OMP_GPU -DRUN_TEST -o test_gpu
+	@echo "[INFO] Launching..."
+	./test_gpu
+	@echo "[INFO] Completed"
+
+test: test-cpu test-gpu
+	
