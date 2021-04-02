@@ -107,15 +107,15 @@ compile-omp-cpu: mkdir-bin
 
 run-cpu: mkdir-logs compile-cpu
 	@echo "[INFO] Running $(BENCH_NAME) [CPU, SIZE=$(SIZE)]"
-	$(CPU_SEQ_BIN) > $(CPU_SEQ_LOG)
+	stdbuf -oL $(CPU_SEQ_BIN) > $(CPU_SEQ_LOG)
 
 run-omp-gpu: mkdir-logs compile-omp-gpu
 	@echo "[INFO] Running $(BENCH_NAME) [OMP GPU, SIZE=$(SIZE)]"
-	$(OMP_GPU_BIN) > $(OMP_GPU_LOG)
+	stdbuf -oL $(OMP_GPU_BIN) > $(OMP_GPU_LOG)
 
 run-omp-cpu: mkdir-logs compile-omp-cpu
 	@echo "[INFO] Running $(BENCH_NAME) [OMP CPU, SIZE=$(SIZE)]"
-	$(OMP_CPU_BIN) > $(OMP_CPU_LOG)
+	stdbuf -oL $(OMP_CPU_BIN) > $(OMP_CPU_LOG)
 
 #############################################
 # Run test mode
