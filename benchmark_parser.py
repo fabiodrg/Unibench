@@ -121,6 +121,9 @@ def dump_csv(times):
         header = ['kernelName'] + [f'{target}{KERNEL_SIZES_NAMES[size]}' for size, target in cols]
         writer.writerow(header)
 
+        # sort by kernel name
+        times = {k:times[k] for k in sorted(times.keys())}
+
         # for each kernel, dump the timings
         for kernel, measures in times.items():
             # chain all measures for each kernel size, creating a plain list of measures in seconds
@@ -129,7 +132,6 @@ def dump_csv(times):
             # write the row (kernel name followed by times)
             writer.writerow([kernel] + t)
 
-
-
-times = parse_logs()
-dump_csv(times)
+if __name__ == "__main__":
+    times = parse_logs()
+    dump_csv(times)
