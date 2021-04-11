@@ -1,5 +1,5 @@
 bin/
-logs/
+logs*/
 
 # File extensions to be ignored anywhere in the tree
 *~
