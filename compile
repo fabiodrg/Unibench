@@ -1,7 +1,7 @@
 #!/bin/bash
 
 SIZES=(512 1024 2048 4096)
-POLYBENCH=( "2DCONV" "2MM" "3DCONV" "3MM" "ATAX" "BICG" )
+POLYBENCH=( "2DCONV" "3DCONV" "ATAX" "BICG" "2MM" "3MM" )
 
 benchmark_cpu () {
     for kernel in "${POLYBENCH[@]}"
@@ -45,37 +45,17 @@ llvm_mca () {
     done
 }
 
-# usage: ./compile test_kernel 2DCONV
-test_kernel () {
+test_all() {
+    for kernel in "${POLYBENCH[@]}"
+    do
+        BENCH_NAME=Polybench/${kernel} make test
+    done
+}
+
+# usage: ./compile test 2DCONV
+test() {
     kernel="$1"
-
-    mkdir -p bin/test
-
-    echo "[INFO] Compiling in test mode for ${kernel} targetting GPU..." ; \
-    gcc -fopenmp -foffload=nvptx-none=-misa=sm_35 -foffload=-lm \
-        -I benchmarks/common/ \
-        -lm \
-        -DRUN_TEST \
-        -DRUN_OMP_GPU \
-        -o "bin/test/${kernel}_omp_gpu" \
-        benchmarks/Polybench/$kernel/src/*.c && \
-    echo "[INFO] Launching..." ; \
-    bin/test/${kernel}_omp_gpu ; \
-    echo "[INFO] Completed"
-
-    echo -e "\n"
-
-    echo "[INFO] Compiling in test mode for ${kernel} targetting CPU..." && \
-    gcc -fopenmp -foffload=disable -foffload=-lm \
-        -I benchmarks/common/ \
-        -lm \
-        -DRUN_TEST \
-        -DRUN_OMP_CPU \
-        -o "bin/test/${kernel}_omp_cpu" \
-        benchmarks/Polybench/$kernel/src/*.c && \
-    echo "[INFO] Launching..." ; \
-    bin/test/${kernel}_omp_cpu ; \
-    echo "[INFO] Completed"
+    BENCH_NAME=Polybench/${kernel} make test
 }
 
 "$@"
