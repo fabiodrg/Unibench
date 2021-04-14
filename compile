@@ -3,22 +3,42 @@
 SIZES=(512 1024 2048 4096)
 POLYBENCH=( "2DCONV" "3DCONV" "ATAX" "BICG" "2MM" "3MM" )
 
+build_cpu () {
+    for kernel in "${POLYBENCH[@]}"
+    do
+        for size in "${SIZES[@]}"
+        do
+            BENCH_NAME=Polybench/${kernel} SIZE=${size} RUNS=3 make compile-cpu
+        done
+    done
+}
+
+build_omp_cpu () {
+    for kernel in "${POLYBENCH[@]}"
+    do
+        for size in "${SIZES[@]}"
+        do
+            BENCH_NAME=Polybench/${kernel} SIZE=${size} RUNS=3 make compile-omp-cpu
+        done
+    done
+}
+
+build_omp_gpu () {
+    for kernel in "${POLYBENCH[@]}"
+    do
+        for size in "${SIZES[@]}"
+        do
+            BENCH_NAME=Polybench/${kernel} SIZE=${size} RUNS=3 make compile-omp-gpu
+        done
+    done
+}
+
 benchmark_cpu () {
     for kernel in "${POLYBENCH[@]}"
     do
         for size in "${SIZES[@]}"
         do
             BENCH_NAME=Polybench/${kernel} SIZE=${size} RUNS=3 make run-cpu
-        done
-    done
-}
-
-benchmark_omp_gpu () {
-    for kernel in "${POLYBENCH[@]}"
-    do
-        for size in "${SIZES[@]}"
-        do
-            BENCH_NAME=Polybench/${kernel} SIZE=${size} RUNS=3 make run-omp-gpu
         done
     done
 }
@@ -33,15 +53,20 @@ benchmark_omp_cpu () {
     done
 }
 
+benchmark_omp_gpu () {
+    for kernel in "${POLYBENCH[@]}"
+    do
+        for size in "${SIZES[@]}"
+        do
+            BENCH_NAME=Polybench/${kernel} SIZE=${size} RUNS=3 make run-omp-gpu
+        done
+    done
+}
+
 llvm_mca () {
     for kernel in "${POLYBENCH[@]}"
     do
-        echo "[INFO] Getting LLVM-MCA data from Polybench/${kernel}"
-        mkdir -p logs/$kernel
-        gcc -S benchmarks/Polybench/${kernel}/src/*.c -I benchmarks/common/ -DRUN_CPU_SEQ -DLLVM_MCA -o /dev/stdout \
-            | llvm-mca --iterations=1 > logs/${kernel}/llvm_mca_1.log
-        gcc -S benchmarks/Polybench/${kernel}/src/*.c -I benchmarks/common/ -DRUN_CPU_SEQ -DLLVM_MCA -o /dev/stdout \
-            | llvm-mca --iterations=128 > logs/${kernel}/llvm_mca_128.log
+        BENCH_NAME=Polybench/${kernel} make llvm-mca
     done
 }
 

@@ -5,8 +5,8 @@
 # SIZE: The problem dimensions (e.g. 512, 1024, 2048, 4096)
 # RUNS: The number of consecutive times the kernel should run
 
-check-def-var = $(if $(strip $($1)),,$(error "$1" is not defined))
-$(call check-def-var,BENCH_NAME)
+#check-def-var = $(if $(strip $($1)),,$(error "$1" is not defined))
+#$(call check-def-var,BENCH_NAME)
 #$(call check-def-var,SIZE)
 #$(call check-def-var,RUNS)
 
@@ -35,6 +35,26 @@ LOGS_DIR=./logs
 CPU_SEQ_LOG=$(LOGS_DIR)/$(BENCH_NAME)/cpu_$(SIZE).log
 OMP_CPU_LOG=$(LOGS_DIR)/$(BENCH_NAME)/omp_cpu_$(SIZE).log
 OMP_GPU_LOG=$(LOGS_DIR)/$(BENCH_NAME)/omp_gpu_$(SIZE).log
+LLVM_MCA_LOG=$(LOGS_DIR)/$(BENCH_NAME)/llvm_mca.log
+
+#############################################
+# Compiler Options
+#############################################
+
+# compiler
+CC=gcc
+# includes
+INCLUDE=-I $(ROOT_BENCH_DIR)/common
+# compiler flags
+CFLAGS=
+# libraries
+LDLIBS=
+# specific compiler flags for sequential CPU
+TARGET_CPU_FLAGS=
+# specific compiler flags for parallel CPU target
+TARGET_OMP_CPU_FLAGS=-fopenmp -foffload=disable
+# specific compiler flags for parallel GPU target
+TARGET_OMP_GPU_FLAGS=-fopenmp -foffload=nvptx-none=-misa=sm_35
 
 #############################################
 # Kernel custom options
@@ -44,23 +64,8 @@ OMP_GPU_LOG=$(LOGS_DIR)/$(BENCH_NAME)/omp_gpu_$(SIZE).log
 # Specifies the source files for compilation as well as additional flags (e.g. math libraries)
 include $(BENCH_DIR)/src/Makefile
 
-#############################################
-# Compiler Options
-#############################################
-
-# compiler
-CC=gcc
-
-# common flags for the three targets: sequential CPU, parallel CPU, parallel GPU
-COMMON_FLAGS=-I $(ROOT_BENCH_DIR)/common
-
-# specific compiler flags for sequential CPU
-CPU_SEQ_FLAGS=
-# specific compiler flags for parallel CPU target
-OMP_CPU_FLAGS=-fopenmp -foffload=disable
-# specific compiler flags for parallel GPU target
-OMP_GPU_FLAGS=-fopenmp -foffload=nvptx-none=-misa=sm_35
-
+# common compiling command
+CC_COMMON=$(CC) $(CFLAGS) $(INCLUDE) $(LDLIBS)
 
 #############################################
 # Default target
@@ -89,17 +94,17 @@ mkdir-logs:
 # compiles the sequential CPU version
 compile-cpu: mkdir-bin
 	@echo "[INFO] Compiling $(BENCH_NAME) [CPU, SIZE=$(SIZE)]"
-	$(CC) $(COMMON_FLAGS) $(CPU_SEQ_FLAGS) $(BENCH_FLAGS) $(SRC_OBJS) -DRUN_CPU_SEQ -DSIZE=$(SIZE) -DN_RUNS=$(RUNS) -o $(CPU_SEQ_BIN)
+	$(CC_COMMON) $(TARGET_CPU_FLAGS) $(BENCH_FLAGS) $(SRC_OBJS) -DRUN_CPU_SEQ -DSIZE=$(SIZE) -DN_RUNS=$(RUNS) -o $(CPU_SEQ_BIN)
 
 # compiles the parallel GPU version
 compile-omp-gpu: mkdir-bin
 	@echo "[INFO] Compiling $(BENCH_NAME) [OMP GPU, SIZE=$(SIZE)]"
-	$(CC) $(COMMON_FLAGS) $(OMP_GPU_FLAGS) $(BENCH_FLAGS) $(SRC_OBJS) -DRUN_OMP_GPU -DSIZE=$(SIZE) -DN_RUNS=$(RUNS) -o $(OMP_GPU_BIN)
+	$(CC_COMMON) $(TARGET_OMP_GPU_FLAGS) $(BENCH_FLAGS) $(SRC_OBJS) -DRUN_OMP_GPU -DSIZE=$(SIZE) -DN_RUNS=$(RUNS) -o $(OMP_GPU_BIN)
 
 # compiles the parallel CPU version
 compile-omp-cpu: mkdir-bin
 	@echo "[INFO] Compiling $(BENCH_NAME) [OMP CPU, SIZE=$(SIZE)]"
-	$(CC) $(COMMON_FLAGS) $(OMP_CPU_FLAGS) $(BENCH_FLAGS) $(SRC_OBJS) -DRUN_OMP_CPU -DSIZE=$(SIZE) -DN_RUNS=$(RUNS) -o $(OMP_CPU_BIN)
+	$(CC_COMMON) $(TARGET_OMP_CPU_FLAGS) $(BENCH_FLAGS) $(SRC_OBJS) -DRUN_OMP_CPU -DSIZE=$(SIZE) -DN_RUNS=$(RUNS) -o $(OMP_CPU_BIN)
 
 #############################################
 # Run targets
@@ -122,17 +127,24 @@ run-omp-cpu: mkdir-logs compile-omp-cpu
 #############################################
 test-cpu:
 	@echo "[INFO] Compiling $(BENCH_NAME) [OMP CPU, Test mode]"
-	$(CC) $(COMMON_FLAGS) $(OMP_CPU_FLAGS) $(BENCH_FLAGS) $(SRC_OBJS) -DRUN_OMP_CPU -DRUN_TEST -o test_cpu
+	$(CC_COMMON) $(TARGET_OMP_CPU_FLAGS) $(BENCH_FLAGS) $(SRC_OBJS) -DRUN_OMP_CPU -DRUN_TEST -o test_cpu
 	@echo "[INFO] Launching..."
 	./test_cpu
 	@echo "[INFO] Completed"
 
 test-gpu:
 	@echo "[INFO] Compiling $(BENCH_NAME) [OMP GPU, Test mode]"
-	$(CC) $(COMMON_FLAGS) $(OMP_GPU_FLAGS) $(BENCH_FLAGS) $(SRC_OBJS) -DRUN_OMP_GPU -DRUN_TEST -o test_gpu
+	$(CC_COMMON) $(TARGET_OMP_GPU_FLAGS) $(BENCH_FLAGS) $(SRC_OBJS) -DRUN_OMP_GPU -DRUN_TEST -o test_gpu
 	@echo "[INFO] Launching..."
 	./test_gpu
 	@echo "[INFO] Completed"
 
 test: test-cpu test-gpu
-	
+
+
+#############################################
+# Run LLVM MCA
+#############################################
+llvm-mca:
+	$(CC_COMMON) -S $(SRC_OBJS) -DRUN_CPU_SEQ -DLLVM_MCA\
+		-o /dev/stdout | llvm-mca --iterations=1 > $(LLVM_MCA_LOG)
