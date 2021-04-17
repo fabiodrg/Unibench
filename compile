@@ -1,96 +1,83 @@
 #!/bin/bash
 
 SIZES=(512 1024 2048 4096)
-POLYBENCH=( "2DCONV" "3DCONV" "ATAX" "BICG" "2MM" "3MM" )
 
-build_cpu () {
-    for kernel in "${POLYBENCH[@]}"
+FAST_KERNELS=(
+    "Polybench/2DCONV"
+    "Polybench/3DCONV"
+    "Polybench/ATAX"
+    "Polybench/BICG"
+)
+N_FAST_RUNS=10
+
+SLOW_KERNELS=(
+    "Polybench/2MM"
+    "Polybench/3MM"
+)
+N_SLOW_KERNELS=3
+
+# Arguments:
+#   - the make target name, e.g. "compile-cpu"
+__invoke_make() {
+    # fast kernels
+    for kernel in "${FAST_KERNELS[@]}"
     do
         for size in "${SIZES[@]}"
         do
-            BENCH_NAME=Polybench/${kernel} SIZE=${size} RUNS=3 make compile-cpu
+            BENCH_NAME=${kernel} SIZE=${size} RUNS=${N_FAST_RUNS} make $1
+        done
+    done
+
+    # slow kernels
+    for kernel in "${SLOW_KERNELS[@]}"
+    do
+        for size in "${SIZES[@]}"
+        do
+            BENCH_NAME=${kernel} SIZE=${size} RUNS=${N_SLOW_KERNELS} make $1
         done
     done
 }
 
 debug_cpu () {
-    for kernel in "${POLYBENCH[@]}"
-    do
-        for size in "${SIZES[@]}"
-        do
-            BENCH_NAME=Polybench/${kernel} SIZE=${size} make debug
-        done
-    done
+    __invoke_make "debug"
+}
+
+build_cpu () {
+    __invoke_make "compile-cpu"
 }
 
 build_omp_cpu () {
-    for kernel in "${POLYBENCH[@]}"
-    do
-        for size in "${SIZES[@]}"
-        do
-            BENCH_NAME=Polybench/${kernel} SIZE=${size} RUNS=3 make compile-omp-cpu
-        done
-    done
+    __invoke_make "compile-omp-cpu"
 }
 
 build_omp_gpu () {
-    for kernel in "${POLYBENCH[@]}"
-    do
-        for size in "${SIZES[@]}"
-        do
-            BENCH_NAME=Polybench/${kernel} SIZE=${size} RUNS=3 make compile-omp-gpu
-        done
-    done
+    __invoke_make "compile-omp-gpu"
 }
 
 benchmark_cpu () {
-    for kernel in "${POLYBENCH[@]}"
-    do
-        for size in "${SIZES[@]}"
-        do
-            BENCH_NAME=Polybench/${kernel} SIZE=${size} RUNS=3 make run-cpu
-        done
-    done
+    __invoke_make "run-cpu"
 }
 
 benchmark_omp_cpu () {
-    for kernel in "${POLYBENCH[@]}"
-    do
-        for size in "${SIZES[@]}"
-        do
-            BENCH_NAME=Polybench/${kernel} SIZE=${size} RUNS=3 make run-omp-cpu
-        done
-    done
+    __invoke_make "run-omp-cpu"
 }
 
 benchmark_omp_gpu () {
-    for kernel in "${POLYBENCH[@]}"
-    do
-        for size in "${SIZES[@]}"
-        do
-            BENCH_NAME=Polybench/${kernel} SIZE=${size} RUNS=3 make run-omp-gpu
-        done
-    done
+    __invoke_make "run-omp-gpu"
 }
 
 llvm_mca () {
-    for kernel in "${POLYBENCH[@]}"
-    do
-        BENCH_NAME=Polybench/${kernel} make llvm-mca
-    done
+    __invoke_make "llvm-mca"
 }
 
 test_all() {
-    for kernel in "${POLYBENCH[@]}"
-    do
-        BENCH_NAME=Polybench/${kernel} make test
-    done
+    __invoke_make "test"
 }
 
-# usage: ./compile test 2DCONV
+# usage: ./compile test Polybench/2DCONV
 test() {
     kernel="$1"
-    BENCH_NAME=Polybench/${kernel} make test
+    BENCH_NAME=${kernel} make test
 }
 
 "$@"
