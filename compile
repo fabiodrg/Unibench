@@ -13,6 +13,16 @@ build_cpu () {
     done
 }
 
+debug_cpu () {
+    for kernel in "${POLYBENCH[@]}"
+    do
+        for size in "${SIZES[@]}"
+        do
+            BENCH_NAME=Polybench/${kernel} SIZE=${size} make debug
+        done
+    done
+}
+
 build_omp_cpu () {
     for kernel in "${POLYBENCH[@]}"
     do

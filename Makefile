@@ -29,7 +29,7 @@ OMP_CPU_BIN=$(BIN_DIR)/$(BENCH_NAME)/omp_cpu_$(SIZE)
 OMP_GPU_BIN=$(BIN_DIR)/$(BENCH_NAME)/omp_gpu_$(SIZE)
 
 # parent directory for storing executables output
-LOGS_DIR=./logs
+LOGS_DIR=./logs-laptop-O0
 
 # logs filenames
 CPU_SEQ_LOG=$(LOGS_DIR)/$(BENCH_NAME)/cpu_$(SIZE).log
@@ -46,7 +46,7 @@ CC=gcc
 # includes
 INCLUDE=-I $(ROOT_BENCH_DIR)/common
 # compiler flags
-CFLAGS=
+CFLAGS=-O0
 # libraries
 LDLIBS=
 # specific compiler flags for sequential CPU
@@ -147,4 +147,15 @@ test: test-cpu test-gpu
 #############################################
 llvm-mca:
 	$(CC_COMMON) -S $(SRC_OBJS) -DRUN_CPU_SEQ -DLLVM_MCA\
-		-o /dev/stdout | llvm-mca --iterations=1 > $(LLVM_MCA_LOG)
+		-o /dev/stdout | llvm-mca --iterations=100 > $(LLVM_MCA_LOG)
+
+#############################################
+# Debug (for profiling)
+#############################################
+
+__debug:
+	$(eval RUNS=1)
+	$(eval CC_COMMON+=-g)
+
+debug: __debug compile-cpu
+	
