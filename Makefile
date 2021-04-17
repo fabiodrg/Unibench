@@ -43,10 +43,12 @@ LLVM_MCA_LOG=$(LOGS_DIR)/$(BENCH_NAME)/llvm_mca.log
 
 # compiler
 CC=gcc
+# optimization flags
+OPT_FLAG=-O3
 # includes
 INCLUDE=-I $(ROOT_BENCH_DIR)/common
 # compiler flags
-CFLAGS=-O0
+CFLAGS=${OPT_FLAG}
 # libraries
 LDLIBS=
 # specific compiler flags for sequential CPU
@@ -54,7 +56,7 @@ TARGET_CPU_FLAGS=
 # specific compiler flags for parallel CPU target
 TARGET_OMP_CPU_FLAGS=-fopenmp -foffload=disable
 # specific compiler flags for parallel GPU target
-TARGET_OMP_GPU_FLAGS=-fopenmp -foffload=nvptx-none=-misa=sm_35
+TARGET_OMP_GPU_FLAGS=-fopenmp -foffload=nvptx-none=-misa=sm_35 -foffload="${OPT_FLAG}"
 
 #############################################
 # Kernel custom options
