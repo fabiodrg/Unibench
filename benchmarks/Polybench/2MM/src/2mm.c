@@ -162,8 +162,6 @@ void mm2_OMP(DATA_TYPE *A, DATA_TYPE *B, DATA_TYPE *C, DATA_TYPE *D, DATA_TYPE *
 }
 
 int main(int argc, char **argv) {
-  double t_start, t_end, t_start_GPU, t_end_GPU;
-
   int fail = 0;
 
   DATA_TYPE *C;

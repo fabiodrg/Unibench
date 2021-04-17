@@ -168,7 +168,6 @@ void mm3_OMP(DATA_TYPE *A, DATA_TYPE *B, DATA_TYPE *C, DATA_TYPE *D,
 }
 
 int main(int argc, char **argv) {
-  double t_start, t_end;
   int fail = 0;
 
   DATA_TYPE *A;

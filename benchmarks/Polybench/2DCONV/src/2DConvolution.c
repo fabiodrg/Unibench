@@ -117,7 +117,6 @@ int compareResults(DATA_TYPE *B, DATA_TYPE *B_OMP) {
 }
 
 int main(int argc, char *argv[]) {
-  double t_start, t_end, t_start_OMP, t_end_OMP;
   int fail = 0;
 
   DATA_TYPE *A;

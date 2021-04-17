@@ -117,7 +117,6 @@ void atax_OMP(DATA_TYPE *A, DATA_TYPE *x, DATA_TYPE *y, DATA_TYPE *tmp) {
 }
 
 int main(int argc, char **argv) {
-  double t_start, t_end;
   int fail = 0;
 
   DATA_TYPE *A;

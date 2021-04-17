@@ -88,9 +88,12 @@ void conv3D_OMP(DATA_TYPE *A, DATA_TYPE *B) {
   c23 = +7;
   c33 = +10;
 
+  unsigned long int size = NI;
+  size *= NJ;
+  size *= NK;
 #pragma omp target teams distribute parallel for \
-  map(to: A[:NI * NJ * NK])       \
-  map(from: B[:NI * NJ * NK]) \
+  map(to: A[:size])       \
+  map(from: B[:size]) \
   device(OMP_DEVICE_ID) \
   private(i, k)
   for (j = 1; j < NJ - 1; ++j) {
@@ -156,14 +159,18 @@ int compareResults(DATA_TYPE *B, DATA_TYPE *B_OMP) {
 }
 
 int main(int argc, char *argv[]) {
-  double t_start, t_end;
   int fail = 0;
 
   DATA_TYPE *A;
   DATA_TYPE *B;
-  DATA_TYPE *B_OMP;
+  
+  // small hack to cast the macros into unsigned longs (UL) and multiply without
+  // overflowing
+  unsigned long int size = NI;
+  size *= NJ;
+  size *= NK;
 
-  A = (DATA_TYPE *)malloc(NI * NJ * NK * sizeof(DATA_TYPE));
+  A = (DATA_TYPE *)malloc(size * sizeof(DATA_TYPE));
 
   fprintf(stdout, ">> Three dimensional (3D) convolution <<\n");
 
@@ -171,13 +178,14 @@ int main(int argc, char *argv[]) {
 
 // run OMP on GPU or CPU if enabled
 #if defined(RUN_OMP_GPU) || defined(RUN_OMP_CPU)
-  B_OMP = (DATA_TYPE *)malloc(NI * NJ * NK * sizeof(DATA_TYPE));
+  DATA_TYPE *B_OMP;
+  B_OMP = (DATA_TYPE *)malloc(size * sizeof(DATA_TYPE));
   BENCHMARK_OMP(conv3D_OMP(A, B_OMP));
 #endif
 
 // run sequential version if enabled
 #ifdef RUN_CPU_SEQ
-  B = (DATA_TYPE *)malloc(NI * NJ * NK * sizeof(DATA_TYPE));
+  B = (DATA_TYPE *)malloc(size * sizeof(DATA_TYPE));
   BENCHMARK_CPU(conv3D(A, B));
 #endif
 

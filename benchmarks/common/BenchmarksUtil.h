@@ -54,7 +54,7 @@
       __t_start = rtclock();                                                   \
       FUNC_CALL;                                                               \
       __t_end = rtclock();                                                     \
-      fprintf(stdout, DEVICE " Runtime (%d): %0.6lfs\n", i,                    \
+      fprintf(stdout, DEVICE " Runtime (%lu): %0.6lfs\n", i,                    \
               __t_end - __t_start);                                            \
       __t_total += __t_end - __t_start;                                        \
     }                                                                          \

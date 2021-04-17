@@ -44,11 +44,11 @@ LLVM_MCA_LOG=$(LOGS_DIR)/$(BENCH_NAME)/llvm_mca.log
 # compiler
 CC=gcc
 # optimization flags
-OPT_FLAG=-O3
+OPT_FLAG=-O0
 # includes
 INCLUDE=-I $(ROOT_BENCH_DIR)/common
 # compiler flags
-CFLAGS=${OPT_FLAG}
+CFLAGS=${OPT_FLAG} -Wall -Wno-unknown-pragmas -Wno-unused-variable
 # libraries
 LDLIBS=
 # specific compiler flags for sequential CPU
@@ -96,17 +96,17 @@ mkdir-logs:
 # compiles the sequential CPU version
 compile-cpu: mkdir-bin
 	@echo "[INFO] Compiling $(BENCH_NAME) [CPU, SIZE=$(SIZE)]"
-	$(CC_COMMON) $(TARGET_CPU_FLAGS) $(BENCH_FLAGS) $(SRC_OBJS) -DRUN_CPU_SEQ -DSIZE=$(SIZE)UL -DN_RUNS=$(RUNS) -o $(CPU_SEQ_BIN)
+	$(CC_COMMON) $(TARGET_CPU_FLAGS) $(BENCH_FLAGS) $(SRC_OBJS) -DRUN_CPU_SEQ -DSIZE=$(SIZE) -DN_RUNS=$(RUNS) -o $(CPU_SEQ_BIN)
 
 # compiles the parallel GPU version
 compile-omp-gpu: mkdir-bin
 	@echo "[INFO] Compiling $(BENCH_NAME) [OMP GPU, SIZE=$(SIZE)]"
-	$(CC_COMMON) $(TARGET_OMP_GPU_FLAGS) $(BENCH_FLAGS) $(SRC_OBJS) -DRUN_OMP_GPU -DSIZE=$(SIZE)UL -DN_RUNS=$(RUNS) -o $(OMP_GPU_BIN)
+	$(CC_COMMON) $(TARGET_OMP_GPU_FLAGS) $(BENCH_FLAGS) $(SRC_OBJS) -DRUN_OMP_GPU -DSIZE=$(SIZE) -DN_RUNS=$(RUNS) -o $(OMP_GPU_BIN)
 
 # compiles the parallel CPU version
 compile-omp-cpu: mkdir-bin
 	@echo "[INFO] Compiling $(BENCH_NAME) [OMP CPU, SIZE=$(SIZE)]"
-	$(CC_COMMON) $(TARGET_OMP_CPU_FLAGS) $(BENCH_FLAGS) $(SRC_OBJS) -DRUN_OMP_CPU -DSIZE=$(SIZE)UL -DN_RUNS=$(RUNS) -o $(OMP_CPU_BIN)
+	$(CC_COMMON) $(TARGET_OMP_CPU_FLAGS) $(BENCH_FLAGS) $(SRC_OBJS) -DRUN_OMP_CPU -DSIZE=$(SIZE) -DN_RUNS=$(RUNS) -o $(OMP_CPU_BIN)
 
 #############################################
 # Run targets
