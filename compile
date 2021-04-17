@@ -4,13 +4,13 @@ SIZES=(512 1024 2048 4096)
 
 FAST_KERNELS=(
     "Polybench/2DCONV"
-    "Polybench/3DCONV"
     "Polybench/ATAX"
     "Polybench/BICG"
 )
 N_FAST_RUNS=10
 
 SLOW_KERNELS=(
+    "Polybench/3DCONV"
     "Polybench/2MM"
     "Polybench/3MM"
 )
