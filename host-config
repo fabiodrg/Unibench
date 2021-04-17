@@ -1,0 +1,19 @@
+#!/bin/bash
+
+on() {
+    # disable turbo boost
+    echo 1 | sudo tee /sys/devices/system/cpu/intel_pstate/no_turbo
+    
+    # set CPU governor to performance
+    echo performance | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor
+}
+
+off() {
+    # disable turbo boost
+    echo 0 | sudo tee /sys/devices/system/cpu/intel_pstate/no_turbo
+    
+    # set CPU governor to performance
+    echo powersave | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor
+}
+
+"$@"
