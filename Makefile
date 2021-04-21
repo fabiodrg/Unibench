@@ -74,17 +74,17 @@ compile-omp-cpu: mkdir-bin
 
 run-cpu: mkdir-logs compile-cpu
 	@echo "[INFO] Running $(BENCH_NAME) [CPU, SIZE=$(SIZE)]"
-	@date | tee $(CPU_SEQ_LOG)
+	@date > $(CPU_SEQ_LOG)
 	@for i in `seq 1 $(RUNS)`; do stdbuf -oL $(CPU_SEQ_BIN) >> $(CPU_SEQ_LOG); done
 
 run-omp-gpu: mkdir-logs compile-omp-gpu
 	@echo "[INFO] Running $(BENCH_NAME) [OMP GPU, SIZE=$(SIZE)]"
-	@date | tee $(OMP_GPU_LOG)
+	@date > $(OMP_GPU_LOG)
 	@for i in `seq 1 $(RUNS)`; do stdbuf -oL $(OMP_GPU_BIN) >> $(OMP_GPU_LOG); done
 
 run-omp-cpu: mkdir-logs compile-omp-cpu
 	@echo "[INFO] Running $(BENCH_NAME) [OMP CPU, SIZE=$(SIZE)]"
-	@date | tee $(OMP_CPU_LOG)
+	@date > $(OMP_CPU_LOG)
 	@for i in `seq 1 $(RUNS)`; do stdbuf -oL $(OMP_CPU_BIN) >> $(OMP_CPU_LOG); done
 
 #############################################
