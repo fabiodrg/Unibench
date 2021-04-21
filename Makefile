@@ -5,69 +5,29 @@
 # SIZE: The problem dimensions (e.g. 512, 1024, 2048, 4096)
 # RUNS: The number of consecutive times the kernel should run
 
-#check-def-var = $(if $(strip $($1)),,$(error "$1" is not defined))
-#$(call check-def-var,BENCH_NAME)
-#$(call check-def-var,SIZE)
-#$(call check-def-var,RUNS)
-
-#############################################
-# Directories and filenames customization
-#############################################
-
-# root directory for the different benchmark suites
-ROOT_BENCH_DIR=./benchmarks
+# Include Makefile with general settings
+include ./Makefile.defs
 
 # full path for the target benchmark suite's kernel
 BENCH_DIR=$(ROOT_BENCH_DIR)/$(BENCH_NAME)
 
-# parent directory for storing binaries
-BIN_DIR=./bin
-
-# executable filenames
-CPU_SEQ_BIN=$(BIN_DIR)/$(BENCH_NAME)/cpu_$(SIZE)
-OMP_CPU_BIN=$(BIN_DIR)/$(BENCH_NAME)/omp_cpu_$(SIZE)
-OMP_GPU_BIN=$(BIN_DIR)/$(BENCH_NAME)/omp_gpu_$(SIZE)
-
-# parent directory for storing executables output
-LOGS_DIR=./logs-laptop-O0
-
-# logs filenames
-CPU_SEQ_LOG=$(LOGS_DIR)/$(BENCH_NAME)/cpu_$(SIZE).log
-OMP_CPU_LOG=$(LOGS_DIR)/$(BENCH_NAME)/omp_cpu_$(SIZE).log
-OMP_GPU_LOG=$(LOGS_DIR)/$(BENCH_NAME)/omp_gpu_$(SIZE).log
-LLVM_MCA_LOG=$(LOGS_DIR)/$(BENCH_NAME)/llvm_mca.log
-
-#############################################
-# Compiler Options
-#############################################
-
-# compiler
-CC=gcc
-# optimization flags
-OPT_FLAG=-O0
-# includes
-INCLUDE=-I $(ROOT_BENCH_DIR)/common
-# compiler flags
-CFLAGS=${OPT_FLAG} -Wall -Wno-unknown-pragmas -Wno-unused-variable
-# libraries
-LDLIBS=
-# specific compiler flags for sequential CPU
-TARGET_CPU_FLAGS=
-# specific compiler flags for parallel CPU target
-TARGET_OMP_CPU_FLAGS=-fopenmp -foffload=disable
-# specific compiler flags for parallel GPU target
-TARGET_OMP_GPU_FLAGS=-fopenmp -foffload=nvptx-none=-misa=sm_35 -foffload="${OPT_FLAG}"
-
-#############################################
-# Kernel custom options
-#############################################
-
-# Execute the Makefile for the selected kernel
-# Specifies the source files for compilation as well as additional flags (e.g. math libraries)
+# Include the Makefile for the selected kernel
+# Specifies the source files for compilation, libraries to be linked, etc.
 include $(BENCH_DIR)/src/Makefile
 
 # common compiling command
 CC_COMMON=$(CC) $(CFLAGS) $(INCLUDE) $(LDLIBS)
+
+# executable filenames
+CPU_SEQ_BIN=$(BIN_DIR)/cpu_$(SIZE)
+OMP_CPU_BIN=$(BIN_DIR)/omp_cpu_$(SIZE)
+OMP_GPU_BIN=$(BIN_DIR)/omp_gpu_$(SIZE)
+
+# logs filenames
+CPU_SEQ_LOG=$(LOGS_DIR)/cpu_$(SIZE).log
+OMP_CPU_LOG=$(LOGS_DIR)/omp_cpu_$(SIZE).log
+OMP_GPU_LOG=$(LOGS_DIR)/omp_gpu_$(SIZE).log
+LLVM_MCA_LOG=$(LOGS_DIR)/llvm_mca.log
 
 #############################################
 # Default target
@@ -81,13 +41,13 @@ all: compile-cpu compile-omp-cpu compile-omp-gpu
 
 # creates the directory for binaries
 mkdir-bin:
-	@echo "[INFO] Creating directory $(BIN_DIR)/$(BENCH_NAME)"
-	mkdir -p $(BIN_DIR)/$(BENCH_NAME)
+	@echo "[INFO] Creating directory $(BIN_DIR)"
+	@mkdir -p $(BIN_DIR)
 
 # creates the directory for logs
 mkdir-logs:
-	@echo "[INFO] Creating directory $(LOGS_DIR)/$(BENCH_NAME)"
-	mkdir -p $(LOGS_DIR)/$(BENCH_NAME)
+	@echo "[INFO] Creating directory $(LOGS_DIR)"
+	@mkdir -p $(LOGS_DIR)
 
 #############################################
 # Compilation targets
@@ -96,17 +56,17 @@ mkdir-logs:
 # compiles the sequential CPU version
 compile-cpu: mkdir-bin
 	@echo "[INFO] Compiling $(BENCH_NAME) [CPU, SIZE=$(SIZE)]"
-	$(CC_COMMON) $(TARGET_CPU_FLAGS) $(BENCH_FLAGS) $(SRC_OBJS) -DRUN_CPU_SEQ -DSIZE=$(SIZE) -DN_RUNS=$(RUNS) -o $(CPU_SEQ_BIN)
+	$(CC_COMMON) $(TARGET_CPU_FLAGS) $(BENCH_FLAGS) $(SRC_OBJS) -DRUN_CPU_SEQ -DSIZE=$(SIZE) -o $(CPU_SEQ_BIN)
 
 # compiles the parallel GPU version
 compile-omp-gpu: mkdir-bin
 	@echo "[INFO] Compiling $(BENCH_NAME) [OMP GPU, SIZE=$(SIZE)]"
-	$(CC_COMMON) $(TARGET_OMP_GPU_FLAGS) $(BENCH_FLAGS) $(SRC_OBJS) -DRUN_OMP_GPU -DSIZE=$(SIZE) -DN_RUNS=$(RUNS) -o $(OMP_GPU_BIN)
+	$(CC_COMMON) $(TARGET_OMP_GPU_FLAGS) $(BENCH_FLAGS) $(SRC_OBJS) -DRUN_OMP_GPU -DSIZE=$(SIZE) -o $(OMP_GPU_BIN)
 
 # compiles the parallel CPU version
 compile-omp-cpu: mkdir-bin
 	@echo "[INFO] Compiling $(BENCH_NAME) [OMP CPU, SIZE=$(SIZE)]"
-	$(CC_COMMON) $(TARGET_OMP_CPU_FLAGS) $(BENCH_FLAGS) $(SRC_OBJS) -DRUN_OMP_CPU -DSIZE=$(SIZE) -DN_RUNS=$(RUNS) -o $(OMP_CPU_BIN)
+	$(CC_COMMON) $(TARGET_OMP_CPU_FLAGS) $(BENCH_FLAGS) $(SRC_OBJS) -DRUN_OMP_CPU -DSIZE=$(SIZE) -o $(OMP_CPU_BIN)
 
 #############################################
 # Run targets
@@ -114,15 +74,18 @@ compile-omp-cpu: mkdir-bin
 
 run-cpu: mkdir-logs compile-cpu
 	@echo "[INFO] Running $(BENCH_NAME) [CPU, SIZE=$(SIZE)]"
-	stdbuf -oL $(CPU_SEQ_BIN) > $(CPU_SEQ_LOG)
+	@date | tee $(CPU_SEQ_LOG)
+	@for i in `seq 1 $(RUNS)`; do stdbuf -oL $(CPU_SEQ_BIN) >> $(CPU_SEQ_LOG); done
 
 run-omp-gpu: mkdir-logs compile-omp-gpu
 	@echo "[INFO] Running $(BENCH_NAME) [OMP GPU, SIZE=$(SIZE)]"
-	stdbuf -oL $(OMP_GPU_BIN) > $(OMP_GPU_LOG)
+	@date | tee $(OMP_GPU_LOG)
+	@for i in `seq 1 $(RUNS)`; do stdbuf -oL $(OMP_GPU_BIN) >> $(OMP_GPU_LOG); done
 
 run-omp-cpu: mkdir-logs compile-omp-cpu
 	@echo "[INFO] Running $(BENCH_NAME) [OMP CPU, SIZE=$(SIZE)]"
-	stdbuf -oL $(OMP_CPU_BIN) > $(OMP_CPU_LOG)
+	@date | tee $(OMP_CPU_LOG)
+	@for i in `seq 1 $(RUNS)`; do stdbuf -oL $(OMP_CPU_BIN) >> $(OMP_CPU_LOG); done
 
 #############################################
 # Run test mode
@@ -156,7 +119,6 @@ llvm-mca:
 #############################################
 
 __debug:
-	$(eval RUNS=1)
 	$(eval CC_COMMON+=-g)
 
 debug: __debug compile-cpu
