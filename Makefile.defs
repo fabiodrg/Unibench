@@ -1,0 +1,23 @@
+# root directory where the benchmark suites are located
+ROOT_BENCH_DIR=./benchmarks
+# compiler to be used
+CC=gcc
+# optimization flag
+OPT_FLAG=-O3
+# includes
+INCLUDE=-I $(ROOT_BENCH_DIR)/common
+# compiler flags
+CFLAGS=${OPT_FLAG} -Wall -Wno-unknown-pragmas -Wno-unused-variable
+# libraries
+LDLIBS=
+# specific compiler flags for sequential CPU
+TARGET_CPU_FLAGS=
+# specific compiler flags for parallel CPU target
+TARGET_OMP_CPU_FLAGS=-fopenmp -foffload=disable
+# specific compiler flags for parallel GPU target
+TARGET_OMP_GPU_FLAGS=-fopenmp -foffload=nvptx-none=-misa=sm_35 -foffload="${OPT_FLAG}"
+# directory for storing binaries for this kernel
+BIN_DIR=./bin${OPT_FLAG}/$(BENCH_NAME)
+# directory for storing logs for this kernel
+LOGS_DIR=./logs${OPT_FLAG}/$(BENCH_NAME)
+
