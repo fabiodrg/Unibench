@@ -7,14 +7,14 @@ FAST_KERNELS=(
     "Polybench/ATAX"
     "Polybench/BICG"
 )
-N_FAST_RUNS=10
+N_FAST_RUNS=25
 
 SLOW_KERNELS=(
     "Polybench/3DCONV"
     "Polybench/2MM"
     "Polybench/3MM"
 )
-N_SLOW_KERNELS=3
+N_SLOW_KERNELS=5
 
 # Arguments:
 #   - the make target name, e.g. "compile-cpu"
@@ -64,6 +64,12 @@ benchmark_omp_cpu () {
 
 benchmark_omp_gpu () {
     __invoke_make "run-omp-gpu"
+}
+
+bench() {
+    benchmark_cpu
+    benchmark_omp_cpu
+    benchmark_omp_gpu
 }
 
 llvm_mca () {
