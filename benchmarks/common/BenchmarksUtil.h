@@ -49,16 +49,13 @@
 /** Utility macros to run kernels N_RUNS times, collect the time, and print it */
 #define __BENCHMARK(DEVICE, FUNC_CALL)                                         \
   {                                                                            \
-    double __t_start, __t_end, __t_total = 0;                                  \
+    double __t_start, __t_end;                                                 \
     for (size_t i = 0; i < N_RUNS; i++) {                                      \
       __t_start = rtclock();                                                   \
       FUNC_CALL;                                                               \
       __t_end = rtclock();                                                     \
-      fprintf(stdout, DEVICE " Runtime (%lu): %0.6lfs\n", i,                    \
-              __t_end - __t_start);                                            \
-      __t_total += __t_end - __t_start;                                        \
+      fprintf(stdout, DEVICE " Runtime: %0.6lfs\n", __t_end - __t_start);      \
     }                                                                          \
-    fprintf(stdout, DEVICE " Runtime (avg): %0.6lfs\n", __t_total / N_RUNS);   \
   }
 
 #if defined(RUN_OMP_GPU)
