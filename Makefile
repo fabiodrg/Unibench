@@ -112,7 +112,7 @@ test: test-cpu test-gpu
 #############################################
 llvm-mca:
 	$(CC_COMMON) -S $(SRC_OBJS) -DRUN_CPU_SEQ -DLLVM_MCA\
-		-o /dev/stdout | llvm-mca --iterations=100 > $(LLVM_MCA_LOG)
+		-o /dev/stdout | llvm-mca --iterations=128 > $(LLVM_MCA_LOG)
 
 #############################################
 # Debug (for profiling)
