@@ -5,6 +5,10 @@
 # SIZE: The problem dimensions (e.g. 512, 1024, 2048, 4096)
 # RUNS: The number of consecutive times the kernel should run
 
+ifndef IN_RUNS
+IN_RUNS=1
+endif
+
 # Include Makefile with general settings
 include ./Makefile.defs
 
@@ -56,17 +60,17 @@ mkdir-logs:
 # compiles the sequential CPU version
 compile-cpu: mkdir-bin
 	@echo "[INFO] Compiling $(BENCH_NAME) [CPU, SIZE=$(SIZE)]"
-	$(CC_COMMON) $(TARGET_CPU_FLAGS) $(BENCH_FLAGS) $(SRC_OBJS) -DRUN_CPU_SEQ -DSIZE=$(SIZE) -o $(CPU_SEQ_BIN)
+	$(CC_COMMON) $(TARGET_CPU_FLAGS) $(BENCH_FLAGS) $(SRC_OBJS) -DRUN_CPU_SEQ -DSIZE=$(SIZE) -DIN_RUNS=$(IN_RUNS) -o $(CPU_SEQ_BIN)
 
 # compiles the parallel GPU version
 compile-omp-gpu: mkdir-bin
 	@echo "[INFO] Compiling $(BENCH_NAME) [OMP GPU, SIZE=$(SIZE)]"
-	$(CC_COMMON) $(TARGET_OMP_GPU_FLAGS) $(BENCH_FLAGS) $(SRC_OBJS) -DRUN_OMP_GPU -DSIZE=$(SIZE) -o $(OMP_GPU_BIN)
+	$(CC_COMMON) $(TARGET_OMP_GPU_FLAGS) $(BENCH_FLAGS) $(SRC_OBJS) -DRUN_OMP_GPU -DSIZE=$(SIZE) -DIN_RUNS=$(IN_RUNS) -o $(OMP_GPU_BIN)
 
 # compiles the parallel CPU version
 compile-omp-cpu: mkdir-bin
 	@echo "[INFO] Compiling $(BENCH_NAME) [OMP CPU, SIZE=$(SIZE)]"
-	$(CC_COMMON) $(TARGET_OMP_CPU_FLAGS) $(BENCH_FLAGS) $(SRC_OBJS) -DRUN_OMP_CPU -DSIZE=$(SIZE) -o $(OMP_CPU_BIN)
+	$(CC_COMMON) $(TARGET_OMP_CPU_FLAGS) $(BENCH_FLAGS) $(SRC_OBJS) -DRUN_OMP_CPU -DSIZE=$(SIZE) -DIN_RUNS=$(IN_RUNS) -o $(OMP_CPU_BIN)
 
 #############################################
 # Run targets

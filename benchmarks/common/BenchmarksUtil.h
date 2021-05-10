@@ -12,29 +12,31 @@
 #include <unistd.h>
 
 /** Set default number of runs per kernel/device */
-#ifndef N_RUNS
-#define N_RUNS 1
+#ifndef IN_RUNS
+#define IN_RUNS 1
 #endif
 
 /** Test mode enabled, set the defaults */
 #ifdef RUN_TEST
-  #if ! defined (RUN_OMP_GPU) && ! defined (RUN_OMP_CPU)
-  #error "You must select one OMP version to test: RUN_OMP_GPU, RUN_OMP_CPU"
-  #endif
+#if !defined(RUN_OMP_GPU) && !defined(RUN_OMP_CPU)
+#error "You must select one OMP version to test: RUN_OMP_GPU, RUN_OMP_CPU"
+#endif
 
-  #define RUN_CPU_SEQ
-  #define N_RUNS 1
-  #define SIZE 512
+#define RUN_CPU_SEQ
+#define IN_RUNS 1
+#define SIZE 512
 #endif
 
 /** Check if at least one device is selected */
-#if ! defined(RUN_CPU_SEQ) && ! defined(RUN_OMP_GPU) && ! defined(RUN_OMP_CPU)
-#error "Select one target device! Options: RUN_CPU_SEQ, RUN_OMP_GPU, RUN_OMP_CPU"
+#if !defined(RUN_CPU_SEQ) && !defined(RUN_OMP_GPU) && !defined(RUN_OMP_CPU)
+#error                                                                         \
+    "Select one target device! Options: RUN_CPU_SEQ, RUN_OMP_GPU, RUN_OMP_CPU"
 #endif
 
 /** Check if multiple OMP versions are selected, which is not supported */
 #if (defined(RUN_OMP_GPU) && defined(RUN_OMP_CPU))
-#error "Multiple OMP versions are enabled, but only one OMP version will run (default: GPU)"
+#error                                                                         \
+    "Multiple OMP versions are enabled, but only one OMP version will run (default: GPU)"
 #endif
 
 /** Set the OMP device ID, accordingly with selected version (if any) */
@@ -46,32 +48,58 @@
 #define OMP_DEVICE_ID 1
 #endif
 
-/** Utility macros to run kernels N_RUNS times, collect the time, and print it */
-#define __BENCHMARK(DEVICE, FUNC_CALL)                                         \
+/**
+ * @brief Run function responsible to setup everything before running the actual
+ * kernel.
+ *
+ * The function is executed IN_RUNS times. Each call repeats the memory
+ * allocation and initialization process before calling the kernel, as an
+ * attempt to ensure cold cache
+ *
+ */
+#define BENCH_INIT(KERNEL_SETUP_FUNC)                                          \
   {                                                                            \
-    double __t_start, __t_end;                                                 \
-    for (size_t i = 0; i < N_RUNS; i++) {                                      \
-      __t_start = rtclock();                                                   \
-      FUNC_CALL;                                                               \
-      __t_end = rtclock();                                                     \
-      fprintf(stdout, DEVICE " Runtime: %0.6lfs\n", __t_end - __t_start);      \
+    for (size_t i = 0; i < IN_RUNS; i++) {                                     \
+      KERNEL_SETUP_FUNC();                                                     \
     }                                                                          \
   }
 
+/**
+ * @brief Measures the execution time to execute the kernels function and
+ * outputs to stdout
+ * 
+ */
+#define __BENCHMARK(DEVICE, FUNC_CALL)                                         \
+  {                                                                            \
+    double __t_start, __t_end;                                                 \
+    __t_start = rtclock();                                                     \
+    FUNC_CALL;                                                                 \
+    __t_end = rtclock();                                                       \
+    fprintf(stdout, DEVICE " Runtime: %0.6lfs\n", __t_end - __t_start);        \
+  }
+
+/**
+ * @brief Auxiliar macro to launch OMP related benchmarks
+ * @see __BENCHMARK
+ */
 #if defined(RUN_OMP_GPU)
 #define BENCHMARK_OMP(FUNC_CALL) __BENCHMARK("OMP GPU", FUNC_CALL)
 #elif defined(RUN_OMP_CPU)
 #define BENCHMARK_OMP(FUNC_CALL) __BENCHMARK("OMP CPU", FUNC_CALL)
 #endif
 
+/**
+ * @brief Auxiliar macro to launch CPU sequential benchmarks
+ * @see __BENCHMARK
+ */
 #define BENCHMARK_CPU(FUNC_CALL) __BENCHMARK("CPU", FUNC_CALL)
 
 #ifdef LLVM_MCA
 #define LLVM_MCA_BEGIN(name) __asm volatile("# LLVM-MCA-BEGIN " name)
 #define LLVM_MCA_END(name) __asm volatile("# LLVM-MCA-END " name)
 #else
-#define LLVM_MCA_BEGIN(name) 
-#define LLVM_MCA_END(name) 
+#define LLVM_MCA_BEGIN(name)
+#define LLVM_MCA_END(name)
 #endif
 
 // define a small float value
