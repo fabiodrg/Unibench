@@ -75,7 +75,8 @@ void conv2D_OMP(DATA_TYPE *A, DATA_TYPE *B) {
   c23 = +0.7;
   c33 = +0.10;
 
-  #pragma omp target teams distribute parallel for map(to : A[ : NI *NJ]) map(from : B[ : NI *NJ]) device(OMP_DEVICE_ID)
+  //#pragma omp target teams distribute parallel for map(to : A[ : NI *NJ]) map(from : B[ : NI *NJ]) device(OMP_DEVICE_ID)
+  #pragma omp parallel for
   for (int i = 1; i < NI - 1; ++i) {
     LLVM_MCA_BEGIN("loop_j");
     for (int j = 1; j < NJ - 1; ++j) {
@@ -116,7 +117,7 @@ int compareResults(DATA_TYPE *B, DATA_TYPE *B_OMP) {
   return fail;
 }
 
-int main(int argc, char *argv[]) {
+int init_bench() {
   int fail = 0;
 
   DATA_TYPE *A;
@@ -126,8 +127,6 @@ int main(int argc, char *argv[]) {
   A = (DATA_TYPE *)malloc(NI * NJ * sizeof(DATA_TYPE));
   B = (DATA_TYPE *)malloc(NI * NJ * sizeof(DATA_TYPE));
   B_OMP = (DATA_TYPE *)malloc(NI * NJ * sizeof(DATA_TYPE));
-
-  fprintf(stdout, ">> Two dimensional (2D) convolution <<\n");
 
   // initialize the arrays
   init(A);
@@ -154,3 +153,10 @@ int main(int argc, char *argv[]) {
 
   return fail;
 }
+
+int main(int argc, char *argv[]) {
+  omp_set_num_threads(8);
+  fprintf(stdout, ">> Two dimensional (2D) convolution <<\n");
+  BENCH_INIT(init_bench);
+}
+

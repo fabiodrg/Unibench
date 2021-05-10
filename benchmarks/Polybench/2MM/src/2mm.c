@@ -134,22 +134,26 @@ void mm2(DATA_TYPE *A, DATA_TYPE *B, DATA_TYPE *C, DATA_TYPE *D,
  * @param E Output
  */
 void mm2_OMP(DATA_TYPE *A, DATA_TYPE *B, DATA_TYPE *C, DATA_TYPE *D, DATA_TYPE *E) {
-
-#pragma omp target teams map(from: E[:NI*NL], C[:NI*NJ]) map(to: A[:NI*NK], B[:NK*NJ], D[:NJ*NL]) device(OMP_DEVICE_ID) 
+//#pragma omp target teams map(from: E[:NI*NL], C[:NI*NJ]) map(to: A[:NI*NK], B[:NK*NJ], D[:NJ*NL]) device(OMP_DEVICE_ID) 
   {
-    #pragma omp distribute parallel for collapse(2)
-    for (int i = 0; i < NI; i++) {
-      for (int j = 0; j < NJ; j++) {
-        LLVM_MCA_BEGIN("kernel");
-        C[i * NJ + j] = 0.0;
-        for (int k = 0; k < NK; ++k) {
-          C[i * NJ + j] += A[i * NK + k] * B[k * NJ + j];
+    //#pragma omp distribute
+    #pragma omp parallel
+    {
+      #pragma omp for collapse(2)
+      for (int i = 0; i < NI; i++) {
+        for (int j = 0; j < NJ; j++) {
+          LLVM_MCA_BEGIN("kernel");
+          C[i * NJ + j] = 0.0;
+          for (int k = 0; k < NK; ++k) {
+            C[i * NJ + j] += A[i * NK + k] * B[k * NJ + j];
+          }
+          LLVM_MCA_END("kernel");
         }
-        LLVM_MCA_END("kernel");
       }
     }
 
-    #pragma omp distribute parallel for collapse(2)
+    //#pragma omp distribute parallel for collapse(2)
+    #pragma omp parallel for collapse(2)
     for (int i = 0; i < NI; i++) {
       for (int j = 0; j < NL; j++) {
         E[i * NL + j] = 0.0;
@@ -162,6 +166,7 @@ void mm2_OMP(DATA_TYPE *A, DATA_TYPE *B, DATA_TYPE *C, DATA_TYPE *D, DATA_TYPE *
 }
 
 int main(int argc, char **argv) {
+  omp_set_num_threads(4);
   int fail = 0;
 
   DATA_TYPE *C;
