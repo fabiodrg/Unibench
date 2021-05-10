@@ -116,7 +116,7 @@ test: test-cpu test-gpu
 #############################################
 llvm-mca:
 	$(CC_COMMON) -S $(SRC_OBJS) -DRUN_CPU_SEQ -DLLVM_MCA\
-		-o /dev/stdout | llvm-mca --iterations=128 > $(LLVM_MCA_LOG)
+		-o /dev/stdout | llvm-mca --iterations=128 --bottleneck-analysis > $(LLVM_MCA_LOG)
 
 #############################################
 # Debug (for profiling)
@@ -125,5 +125,17 @@ llvm-mca:
 __debug:
 	$(eval CC_COMMON+=-g)
 
-debug: __debug compile-cpu
-	
+debug-cpu: __debug compile-cpu
+
+debug-omp-cpu: __debug compile-omp-cpu
+
+__asm_common:
+	$(eval RUNS=1)
+	$(eval CC_COMMON+=-S -fverbose-asm -fopt-info-optimized-optall -masm=intel -DLLVM_MCA)
+	$(eval CPU_SEQ_BIN=${CPU_SEQ_BIN}.s)
+	$(eval OMP_CPU_BIN=${OMP_CPU_BIN}.s)
+
+asm: __asm_common compile-cpu
+
+asm_omp: __asm_common compile-omp-cpu
+

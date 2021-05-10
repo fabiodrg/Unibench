@@ -73,6 +73,7 @@ bench() {
 }
 
 llvm_mca () {
+    SIZES=(2048)
     __invoke_make "llvm-mca"
 }
 
