@@ -17,7 +17,7 @@ TARGET_OMP_CPU_FLAGS=-fopenmp -foffload=disable
 # specific compiler flags for parallel GPU target
 TARGET_OMP_GPU_FLAGS=-fopenmp -foffload=nvptx-none=-misa=sm_35 -foffload="${OPT_FLAG}"
 # directory for storing binaries for this kernel
-BASE_OUT_DIR=./
+BASE_OUT_DIR=.
 # directory for benchmark binaries
 BIN_DIR=${BASE_OUT_DIR}/$(BENCH_NAME)/bin
 # directory for storing benchmark logs
