@@ -58,20 +58,27 @@ mkdir-logs:
 #############################################
 
 # Args:
-# - The target device ( RUN_CPU_SEQ | RUN_OMP_CPU | RUN_OMP_GPU )
 # - Target specific compilation flags
+# - The target device ( RUN_CPU_SEQ | RUN_OMP_CPU | RUN_OMP_GPU )
 # - Other Bench specific env variables (-DSIZE, -DTEST, ...)
 # - The output binary filename
+ifeq "$(COMPILER)" "GNU"
+# If GNU, pass the "GCC_OFFLOAD_FLAGS"
 define compile
-	$(CC_COMMON) -D$(1) $(2) $(3) $(SRC_OBJS) -o $(4)
+	$(CC_COMMON) $(1) $(GCC_OFFLOAD_FLAGS) -D$(2) $(3) $(SRC_OBJS) -o $(4)
 endef
+else
+define compile
+	$(CC_COMMON) $(1) -D$(2) $(3) $(SRC_OBJS) -o $(4)
+endef
+endif
 
 # Args:
 # - The target device ( RUN_CPU_SEQ | RUN_OMP_CPU | RUN_OMP_GPU )
 # - The output binary filename
 # - Target specific compilation flags
 define device_compile
-	$(call compile,$(1),$(3),-DSIZE=$(SIZE) -DIN_RUNS=$(IN_RUNS),$(2))
+	$(call compile,$(3),$(1),-DSIZE=$(SIZE) -DIN_RUNS=$(IN_RUNS),$(2))
 endef
 
 # Args:
@@ -79,7 +86,7 @@ endef
 # - Target specific compilation flags
 # - The output binary filename
 define device_test
-	$(call compile,$(1),$(2),-DTEST,$(3))
+	$(call compile,$(2),$(1),-DTEST,$(3))
 endef
 
 # compiles the sequential CPU version
