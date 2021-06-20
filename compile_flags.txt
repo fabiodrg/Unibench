@@ -1,2 +1,5 @@
 -DRUN_CPU_SEQ
 -I./benchmarks/common
+-Wall
+-Wno-unknown-pragmas
+-Wno-unused-variable
