@@ -1,25 +1,78 @@
-# root directory where the benchmark suites are located
+# Root directory where the benchmark suites are located
 ROOT_BENCH_DIR=./benchmarks
-# compiler to be used
-CC=gcc
-# optimization flag
-OPT_FLAG=-O3
-# includes
-INCLUDE=-I $(ROOT_BENCH_DIR)/common
-# compiler flags
-CFLAGS=${OPT_FLAG} -Wall -Wno-unknown-pragmas -Wno-unused-variable
-# libraries
-LDLIBS=
-# specific compiler flags for sequential CPU
-TARGET_CPU_FLAGS=
-# specific compiler flags for parallel CPU target
-TARGET_OMP_CPU_FLAGS=-fopenmp -foffload=disable
-# specific compiler flags for parallel GPU target
-TARGET_OMP_GPU_FLAGS=-fopenmp -foffload=nvptx-none=-misa=sm_35 -foffload="${OPT_FLAG}"
-# directory for storing binaries for this kernel
+# Directory for storing binaries for this kernel
 BASE_OUT_DIR=.
-# directory for benchmark binaries
-BIN_DIR=${BASE_OUT_DIR}/$(BENCH_NAME)/bin
-# directory for storing benchmark logs
-LOGS_DIR=${BASE_OUT_DIR}/$(BENCH_NAME)/logs
+# Directory for benchmark binaries
+BIN_DIR=${BASE_OUT_DIR}/bin/$(BENCH_NAME)
+# Directory for storing benchmark logs
+LOGS_DIR=${BASE_OUT_DIR}/logs/$(BENCH_NAME)
 
+##############################
+# Compiler settings (template)
+##############################
+
+# For convenience, this sets GNU as default compiler
+# Can be customized from env variables
+ifndef COMPILER
+COMPILER=GNU
+endif
+
+# Configuration for GNU compilers
+ifeq "$(COMPILER)" "GNU"
+CC=gcc
+OPT_FLAG=-O3
+CFLAGS=${OPT_FLAG} -Wall -Wno-unknown-pragmas -Wno-unused-variable
+C_INCLUDE_PATH=-I$(ROOT_BENCH_DIR)/common
+LDFLAGS=
+LDLIBS=
+OMP_OFFLOAD_CPU=-fopenmp -foffload=disable
+OMP_OFFLOAD_GPU=-fopenmp -foffload=nvptx-none=-misa=sm_35 -foffload="${OPT_FLAG}"
+GCC_OFFLOAD_FLAGS=
+# Configuration for Clang compilers
+else ifeq "$(COMPILER)" "CLANG"
+CC=clang
+OPT_FLAG=-O3
+CFLAGS=${OPT_FLAG} -Wall -Wno-unknown-pragmas -Wno-unused-variable
+C_INCLUDE_PATH=-I$(ROOT_BENCH_DIR)/common
+LDFLAGS=
+LDLIBS=
+OMP_OFFLOAD_CPU=-fopenmp
+OMP_OFFLOAD_GPU=-fopenmp -fopenmp-targets=nvptx64 -Xopenmp-target -march=sm_35
+# Template for other compilers
+else
+$(error Setup the compiler and respective flags)
+
+# Compiler bin
+CC=
+
+# Optimization flag
+# Could be specified in CFLAGS, but for GCC offloading, the optimization flag
+# must be set in '-foffload' as well
+OPT_FLAG=-O0
+
+# C compiler flags
+CFLAGS=${OPT_FLAG}
+
+# Include directories
+C_INCLUDE_PATH=-I$(ROOT_BENCH_DIR)/common
+
+# Linker flags, such as library search directories (e.g. -L/my/lib/path)
+LDFLAGS=
+
+# Library names (e.g. -lm)
+LDLIBS=
+
+# OpenMP flags for running on Host CPU
+OMP_OFFLOAD_CPU=
+
+# OpenMP flags for running on Host GPU
+OMP_OFFLOAD_GPU=
+
+# Compiler specific offloading flags
+# GCC requires specific offloading flags that are not supported by Clang and 
+# others. This might be the case for other compilers as well. The idea is to
+# define compiler-specific variables for such flags which are then initialized
+# per Benchmark. For example, if a benchmark requires math operations, GCC needs
+# '-foffload=-lm'. For common flags, both 'OMP_OFFLOAD_CPU' and
+# 'OMP_OFFLOAD_GPU' can be used
+endif
