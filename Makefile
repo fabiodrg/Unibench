@@ -123,6 +123,29 @@ test-gpu:
 
 test: test-cpu test-gpu
 
+#############################################
+# Run targets
+#############################################
+
+# Args:
+# - The log filename
+# - The binary filename
+define run
+	@date > $(1)
+	@for i in `seq 1 $(RUNS)`; do stdbuf -oL $(2) >> $(1); done
+endef
+
+run-cpu: mkdir-logs compile-cpu
+	@echo "[INFO] Running $(BENCH_NAME) [CPU, SIZE=$(SIZE)]"
+	$(call run,$(CPU_SEQ_LOG),$(CPU_SEQ_BIN))
+
+run-omp-gpu: mkdir-logs compile-omp-gpu
+	@echo "[INFO] Running $(BENCH_NAME) [OMP GPU, SIZE=$(SIZE)]"
+	$(call run,$(OMP_GPU_LOG),$(OMP_GPU_BIN))
+
+run-omp-cpu: mkdir-logs compile-omp-cpu
+	@echo "[INFO] Running $(BENCH_NAME) [OMP CPU, SIZE=$(SIZE)]"
+	$(call run,$(OMP_CPU_LOG),$(OMP_CPU_BIN))
 
 #############################################
 # Run LLVM MCA
