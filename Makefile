@@ -57,53 +57,59 @@ mkdir-logs:
 # Compilation targets
 #############################################
 
+# Args:
+# - The target device ( RUN_CPU_SEQ | RUN_OMP_CPU | RUN_OMP_GPU )
+# - Target specific compilation flags
+# - Other Bench specific env variables (-DSIZE, -DTEST, ...)
+# - The output binary filename
+define compile
+	$(CC_COMMON) -D$(1) $(2) $(3) $(SRC_OBJS) -o $(4)
+endef
+
+# Args:
+# - The target device ( RUN_CPU_SEQ | RUN_OMP_CPU | RUN_OMP_GPU )
+# - The output binary filename
+# - Target specific compilation flags
+define device_compile
+	$(call compile,$(1),$(3),-DSIZE=$(SIZE) -DIN_RUNS=$(IN_RUNS),$(2))
+endef
+
+# Args:
+# - The target device ( RUN_CPU_SEQ | RUN_OMP_CPU | RUN_OMP_GPU )
+# - Target specific compilation flags
+# - The output binary filename
+define device_test
+	$(call compile,$(1),$(2),-DTEST,$(3))
+endef
+
 # compiles the sequential CPU version
 compile-cpu: mkdir-bin
 	@echo "[INFO] Compiling $(BENCH_NAME) [CPU, SIZE=$(SIZE)]"
-	$(CC_COMMON) $(TARGET_CPU_FLAGS) $(BENCH_FLAGS) $(SRC_OBJS) -DRUN_CPU_SEQ -DSIZE=$(SIZE) -DIN_RUNS=$(IN_RUNS) -o $(CPU_SEQ_BIN)
+	$(call device_compile,RUN_CPU_SEQ,$(CPU_SEQ_BIN))
 
 # compiles the parallel GPU version
 compile-omp-gpu: mkdir-bin
 	@echo "[INFO] Compiling $(BENCH_NAME) [OMP GPU, SIZE=$(SIZE)]"
-	$(CC_COMMON) $(TARGET_OMP_GPU_FLAGS) $(BENCH_FLAGS) $(SRC_OBJS) -DRUN_OMP_GPU -DSIZE=$(SIZE) -DIN_RUNS=$(IN_RUNS) -o $(OMP_GPU_BIN)
+	$(call device_compile,RUN_OMP_GPU,$(OMP_GPU_BIN),$(OMP_OFFLOAD_GPU))
 
 # compiles the parallel CPU version
 compile-omp-cpu: mkdir-bin
 	@echo "[INFO] Compiling $(BENCH_NAME) [OMP CPU, SIZE=$(SIZE)]"
-	$(CC_COMMON) $(TARGET_OMP_CPU_FLAGS) $(BENCH_FLAGS) $(SRC_OBJS) -DRUN_OMP_CPU -DSIZE=$(SIZE) -DIN_RUNS=$(IN_RUNS) -o $(OMP_CPU_BIN)
-
-#############################################
-# Run targets
-#############################################
-
-run-cpu: mkdir-logs compile-cpu
-	@echo "[INFO] Running $(BENCH_NAME) [CPU, SIZE=$(SIZE)]"
-	@date > $(CPU_SEQ_LOG)
-	@for i in `seq 1 $(RUNS)`; do stdbuf -oL $(CPU_SEQ_BIN) >> $(CPU_SEQ_LOG); done
-
-run-omp-gpu: mkdir-logs compile-omp-gpu
-	@echo "[INFO] Running $(BENCH_NAME) [OMP GPU, SIZE=$(SIZE)]"
-	@date > $(OMP_GPU_LOG)
-	@for i in `seq 1 $(RUNS)`; do stdbuf -oL $(OMP_GPU_BIN) >> $(OMP_GPU_LOG); done
-
-run-omp-cpu: mkdir-logs compile-omp-cpu
-	@echo "[INFO] Running $(BENCH_NAME) [OMP CPU, SIZE=$(SIZE)]"
-	@date > $(OMP_CPU_LOG)
-	@for i in `seq 1 $(RUNS)`; do stdbuf -oL $(OMP_CPU_BIN) >> $(OMP_CPU_LOG); done
+	$(call device_compile,RUN_OMP_CPU,$(OMP_CPU_BIN),$(OMP_OFFLOAD_CPU))
 
 #############################################
 # Run test mode
 #############################################
 test-cpu:
 	@echo "[INFO] Compiling $(BENCH_NAME) [OMP CPU, Test mode]"
-	$(CC_COMMON) $(TARGET_OMP_CPU_FLAGS) $(BENCH_FLAGS) $(SRC_OBJS) -DRUN_OMP_CPU -DRUN_TEST -o test_cpu
+	$(call device_test,RUN_OMP_CPU,$(OMP_OFFLOAD_CPU),test_cpu)
 	@echo "[INFO] Launching..."
 	./test_cpu
 	@echo "[INFO] Completed"
 
 test-gpu:
 	@echo "[INFO] Compiling $(BENCH_NAME) [OMP GPU, Test mode]"
-	$(CC_COMMON) $(TARGET_OMP_GPU_FLAGS) $(BENCH_FLAGS) $(SRC_OBJS) -DRUN_OMP_GPU -DRUN_TEST -o test_gpu
+	$(call device_test,RUN_OMP_GPU,$(OMP_OFFLOAD_GPU),test_gpu)
 	@echo "[INFO] Launching..."
 	./test_gpu
 	@echo "[INFO] Completed"
