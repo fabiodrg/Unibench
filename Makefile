@@ -20,7 +20,7 @@ BENCH_DIR=$(ROOT_BENCH_DIR)/$(BENCH_NAME)
 include $(BENCH_DIR)/src/Makefile
 
 # common compiling command
-CC_COMMON=$(CC) $(CFLAGS) $(INCLUDE) $(LDLIBS)
+CC_COMMON=$(CC) $(CFLAGS) $(C_INCLUDE_PATH) $(LDLIBS) $(LDFLAGS)
 
 # executable filenames
 CPU_SEQ_BIN=$(BIN_DIR)/cpu_$(SIZE)
