@@ -1,0 +1,2 @@
+-DRUN_CPU_SEQ
+-I./benchmarks/common
