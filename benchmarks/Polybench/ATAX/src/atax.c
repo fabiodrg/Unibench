@@ -24,11 +24,6 @@
 // define the error threshold for the results "not matching"
 #define ERROR_THRESHOLD 0.5
 
-/* Problem size. */
-#ifndef SIZE
-#define SIZE 1024
-#endif
-
 #define NX SIZE
 #define NY SIZE
 

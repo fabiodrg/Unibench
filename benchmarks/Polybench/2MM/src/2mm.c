@@ -24,10 +24,6 @@
 // define the error threshold for the results "not matching"
 #define ERROR_THRESHOLD 0.05
 
-#ifndef SIZE
-#define SIZE 1024
-#endif
-
 #define NI SIZE
 #define NJ SIZE
 #define NK SIZE
