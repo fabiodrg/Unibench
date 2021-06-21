@@ -115,12 +115,14 @@ test-cpu:
 	@$(call device_test,RUN_OMP_CPU,$(OMP_OFFLOAD_CPU),test_cpu)
 	@$(call log_info,"Launching...")
 	@./test_cpu && $(call log_success,"No errors!") || $(call log_error,"Detected errors!")
+	@rm ./test_cpu
 
 test-gpu:
 	@$(call log_info,"Compiling $(BENCH_NAME) [OMP GPU - Test mode]")
 	@$(call device_test,RUN_OMP_GPU,$(OMP_OFFLOAD_GPU),test_gpu)
 	@$(call log_info,"Launching...")
 	@./test_gpu && $(call log_success,"No errors!") || $(call log_error,"Detected errors!")
+	@rm ./test_gpu
 
 test: test-cpu test-gpu
 
