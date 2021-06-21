@@ -21,7 +21,7 @@ endif
 ifeq "$(COMPILER)" "GNU"
 CC=gcc
 OPT_FLAG=-O3
-CFLAGS=${OPT_FLAG} -Wall -Wno-unknown-pragmas -Wno-unused-variable -fcf-protection=none
+CFLAGS=${OPT_FLAG} -Wall -Wno-unknown-pragmas -Wno-unused-variable -fcf-protection=none -fno-stack-protector
 C_INCLUDE_PATH=-I$(ROOT_BENCH_DIR)/common
 LDFLAGS=
 LDLIBS=
