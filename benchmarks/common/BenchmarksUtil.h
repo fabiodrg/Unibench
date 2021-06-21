@@ -24,6 +24,11 @@
 
 #define RUN_CPU_SEQ
 #define IN_RUNS 1
+#define SIZE 512
+#endif
+
+/** Set default problem size, if undefined */
+#ifndef SIZE
 #define SIZE 1024
 #endif
 
