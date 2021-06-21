@@ -78,6 +78,7 @@ llvm_mca () {
 }
 
 test_all() {
+    SIZES=(1024)
     __invoke_make "test"
 }
 
