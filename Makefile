@@ -9,8 +9,11 @@ ifndef IN_RUNS
 IN_RUNS=1
 endif
 
-# Include Makefile with general settings
+# Include Makefile with user settings
 include ./Makefile.defs
+
+# Include Makefile with auxiliars
+include ./Utils.mk
 
 # full path for the target benchmark suite's kernel
 BENCH_DIR=$(ROOT_BENCH_DIR)/$(BENCH_NAME)
@@ -91,35 +94,33 @@ endef
 
 # compiles the sequential CPU version
 compile-cpu: mkdir-bin
-	@echo "[INFO] Compiling $(BENCH_NAME) [CPU, SIZE=$(SIZE)]"
-	$(call device_compile,RUN_CPU_SEQ,$(CPU_SEQ_BIN))
+	@$(call log_info,"Compiling $(BENCH_NAME) [CPU - SIZE=$(SIZE)]")
+	@$(call device_compile,RUN_CPU_SEQ,$(CPU_SEQ_BIN))
 
 # compiles the parallel GPU version
 compile-omp-gpu: mkdir-bin
-	@echo "[INFO] Compiling $(BENCH_NAME) [OMP GPU, SIZE=$(SIZE)]"
-	$(call device_compile,RUN_OMP_GPU,$(OMP_GPU_BIN),$(OMP_OFFLOAD_GPU))
+	@$(call log_info,"Compiling $(BENCH_NAME) [OMP GPU - SIZE=$(SIZE)]")
+	@$(call device_compile,RUN_OMP_GPU,$(OMP_GPU_BIN),$(OMP_OFFLOAD_GPU))
 
 # compiles the parallel CPU version
 compile-omp-cpu: mkdir-bin
-	@echo "[INFO] Compiling $(BENCH_NAME) [OMP CPU, SIZE=$(SIZE)]"
-	$(call device_compile,RUN_OMP_CPU,$(OMP_CPU_BIN),$(OMP_OFFLOAD_CPU))
+	@$(call log_info,"Compiling $(BENCH_NAME) [OMP CPU - SIZE=$(SIZE)]")
+	@$(call device_compile,RUN_OMP_CPU,$(OMP_CPU_BIN),$(OMP_OFFLOAD_CPU))
 
 #############################################
 # Run test mode
 #############################################
 test-cpu:
-	@echo "[INFO] Compiling $(BENCH_NAME) [OMP CPU, Test mode]"
-	$(call device_test,RUN_OMP_CPU,$(OMP_OFFLOAD_CPU),test_cpu)
-	@echo "[INFO] Launching..."
-	./test_cpu
-	@echo "[INFO] Completed"
+	@$(call log_info,"Compiling $(BENCH_NAME) [OMP CPU - Test mode]")
+	@$(call device_test,RUN_OMP_CPU,$(OMP_OFFLOAD_CPU),test_cpu)
+	@$(call log_info,"Launching...")
+	@./test_cpu && $(call log_success,"No errors!") || $(call log_error,"Detected errors!")
 
 test-gpu:
-	@echo "[INFO] Compiling $(BENCH_NAME) [OMP GPU, Test mode]"
-	$(call device_test,RUN_OMP_GPU,$(OMP_OFFLOAD_GPU),test_gpu)
-	@echo "[INFO] Launching..."
-	./test_gpu
-	@echo "[INFO] Completed"
+	@$(call log_info,"Compiling $(BENCH_NAME) [OMP GPU - Test mode]")
+	@$(call device_test,RUN_OMP_CPU,$(OMP_OFFLOAD_GPU),test_gpu)
+	@$(call log_info,"Launching...")
+	@./test_gpu && $(call log_success,"No errors!") || $(call log_error,"Detected errors!")
 
 test: test-cpu test-gpu
 
@@ -136,16 +137,16 @@ define run
 endef
 
 run-cpu: mkdir-logs compile-cpu
-	@echo "[INFO] Running $(BENCH_NAME) [CPU, SIZE=$(SIZE)]"
-	$(call run,$(CPU_SEQ_LOG),$(CPU_SEQ_BIN))
+	@$(call log_info,"Running $(BENCH_NAME) [CPU - SIZE=$(SIZE)]")
+	@$(call run,$(CPU_SEQ_LOG),$(CPU_SEQ_BIN))
 
 run-omp-gpu: mkdir-logs compile-omp-gpu
-	@echo "[INFO] Running $(BENCH_NAME) [OMP GPU, SIZE=$(SIZE)]"
-	$(call run,$(OMP_GPU_LOG),$(OMP_GPU_BIN))
+	@$(call log_info,"Running $(BENCH_NAME) [OMP GPU - SIZE=$(SIZE)]")
+	@$(call run,$(OMP_GPU_LOG),$(OMP_GPU_BIN))
 
 run-omp-cpu: mkdir-logs compile-omp-cpu
-	@echo "[INFO] Running $(BENCH_NAME) [OMP CPU, SIZE=$(SIZE)]"
-	$(call run,$(OMP_CPU_LOG),$(OMP_CPU_BIN))
+	@$(call log_info,"Running $(BENCH_NAME) [OMP CPU - SIZE=$(SIZE)]")
+	@$(call run,$(OMP_CPU_LOG),$(OMP_CPU_BIN))
 
 #############################################
 # Run LLVM MCA
