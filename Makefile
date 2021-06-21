@@ -118,7 +118,7 @@ test-cpu:
 
 test-gpu:
 	@$(call log_info,"Compiling $(BENCH_NAME) [OMP GPU - Test mode]")
-	@$(call device_test,RUN_OMP_CPU,$(OMP_OFFLOAD_GPU),test_gpu)
+	@$(call device_test,RUN_OMP_GPU,$(OMP_OFFLOAD_GPU),test_gpu)
 	@$(call log_info,"Launching...")
 	@./test_gpu && $(call log_success,"No errors!") || $(call log_error,"Detected errors!")
 
