@@ -113,31 +113,29 @@ int compareResults(DATA_TYPE *B, DATA_TYPE *B_OMP) {
 }
 
 int main(int argc, char *argv[]) {
-  int fail = 0;
-
-  DATA_TYPE *A;
-  DATA_TYPE *B;
-  DATA_TYPE *B_OMP;
-
-  A = (DATA_TYPE *)malloc(NI * NJ * sizeof(DATA_TYPE));
-  B = (DATA_TYPE *)malloc(NI * NJ * sizeof(DATA_TYPE));
-  B_OMP = (DATA_TYPE *)malloc(NI * NJ * sizeof(DATA_TYPE));
-
   fprintf(stdout, ">> Two dimensional (2D) convolution <<\n");
+
+  // declare arrays and allocate memory
+  DATA_TYPE *A = (DATA_TYPE *)malloc(NI * NJ * sizeof(DATA_TYPE));
+  DATA_TYPE *B = NULL;
+  DATA_TYPE *B_OMP = NULL;
 
   // initialize the arrays
   init(A);
 
 // run OMP on GPU or CPU if enabled
 #if defined(RUN_OMP_GPU) || defined(RUN_OMP_CPU)
+  B_OMP = (DATA_TYPE *)malloc(NI * NJ * sizeof(DATA_TYPE));
   BENCHMARK_OMP(conv2D_OMP(A, B_OMP));
 #endif
 
 // run sequential version if enabled
 #ifdef RUN_CPU_SEQ
+  B = (DATA_TYPE *)malloc(NI * NJ * sizeof(DATA_TYPE));
   BENCHMARK_CPU(conv2D(A, B));
 #endif
 
+  int fail = 0;
 // if test mode enabled, compare the results
 #ifdef RUN_TEST
   fail += compareResults(B, B_OMP);

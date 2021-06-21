@@ -121,43 +121,42 @@ void bicg_OMP(DATA_TYPE *A, DATA_TYPE *r, DATA_TYPE *s, DATA_TYPE *p,
 }
 
 int main(int argc, char **argv) {
-  int fail = 0;
-
-  DATA_TYPE *A;
-  DATA_TYPE *r;
-  DATA_TYPE *s;
-  DATA_TYPE *p;
-  DATA_TYPE *q;
-  DATA_TYPE *s_OMP;
-  DATA_TYPE *q_OMP;
-
-  A = (DATA_TYPE *)malloc(NX * NY * sizeof(DATA_TYPE));
-  r = (DATA_TYPE *)malloc(NX * sizeof(DATA_TYPE));
-  s = (DATA_TYPE *)malloc(NY * sizeof(DATA_TYPE));
-  p = (DATA_TYPE *)malloc(NY * sizeof(DATA_TYPE));
-  q = (DATA_TYPE *)malloc(NX * sizeof(DATA_TYPE));
-  s_OMP = (DATA_TYPE *)malloc(NY * sizeof(DATA_TYPE));
-  q_OMP = (DATA_TYPE *)malloc(NX * sizeof(DATA_TYPE));
-
   fprintf(stdout, "<< BiCG Sub Kernel of BiCGStab Linear Solver >>\n");
 
+  // declare arrays and allocate memory
+  DATA_TYPE *A = (DATA_TYPE *)malloc(NX * NY * sizeof(DATA_TYPE));
+  DATA_TYPE *r = (DATA_TYPE *)malloc(NX * sizeof(DATA_TYPE));
+  DATA_TYPE *p = (DATA_TYPE *)malloc(NY * sizeof(DATA_TYPE));
+  DATA_TYPE *s = NULL;
+  DATA_TYPE *s_OMP = NULL;
+  DATA_TYPE *q = NULL;
+  DATA_TYPE *q_OMP = NULL;
+
+  // initialize arrays
   init_array(A, p, r);
 
 // run OMP on GPU or CPU if enabled
 #if defined(RUN_OMP_GPU) || defined(RUN_OMP_CPU)
+  s_OMP = (DATA_TYPE *)malloc(NY * sizeof(DATA_TYPE));
+  q_OMP = (DATA_TYPE *)malloc(NX * sizeof(DATA_TYPE));
   BENCHMARK_OMP(bicg_OMP(A, r, s_OMP, p, q_OMP));
 #endif
 
 // run sequential version if enabled
 #ifdef RUN_CPU_SEQ
+  s = (DATA_TYPE *)malloc(NY * sizeof(DATA_TYPE));
+  q = (DATA_TYPE *)malloc(NX * sizeof(DATA_TYPE));
   BENCHMARK_CPU(bicg(A, r, s, p, q));
 #endif
 
+  int fail = 0;
+// if test mode enabled, compare the results
 #ifdef RUN_TEST
   fail = compareResults(s, s_OMP, q, q_OMP);
   printf("Errors on OMP (threshold %4.2lf): %d\n", ERROR_THRESHOLD, fail);
 #endif
 
+  // Release memory
   free(A);
   free(r);
   free(s);

@@ -155,26 +155,24 @@ int compareResults(DATA_TYPE *B, DATA_TYPE *B_OMP) {
 }
 
 int main(int argc, char *argv[]) {
-  int fail = 0;
+  fprintf(stdout, ">> Three dimensional (3D) convolution <<\n");
 
-  DATA_TYPE *A;
-  DATA_TYPE *B;
-  
   // small hack to cast the macros into unsigned longs (UL) and multiply without
   // overflowing
   unsigned long int size = NI;
   size *= NJ;
   size *= NK;
+  
+  // declare arrays and allocate memory
+  DATA_TYPE *A = (DATA_TYPE *)malloc(size * sizeof(DATA_TYPE));
+  DATA_TYPE *B = NULL;
+  DATA_TYPE *B_OMP = NULL;
 
-  A = (DATA_TYPE *)malloc(size * sizeof(DATA_TYPE));
-
-  fprintf(stdout, ">> Three dimensional (3D) convolution <<\n");
-
+  // initialize memory
   init(A);
 
 // run OMP on GPU or CPU if enabled
 #if defined(RUN_OMP_GPU) || defined(RUN_OMP_CPU)
-  DATA_TYPE *B_OMP;
   B_OMP = (DATA_TYPE *)malloc(size * sizeof(DATA_TYPE));
   BENCHMARK_OMP(conv3D_OMP(A, B_OMP));
 #endif
@@ -185,22 +183,17 @@ int main(int argc, char *argv[]) {
   BENCHMARK_CPU(conv3D(A, B));
 #endif
 
+  int fail = 0;
 // if test mode enabled, compare the results
 #ifdef RUN_TEST
   fail += compareResults(B, B_OMP);
   printf("Errors on OMP (threshold %4.2lf): %d\n", ERROR_THRESHOLD, fail);
 #endif
 
-// Release memory
+  // Release memory
   free(A);
-
-#ifdef RUN_CPU_SEQ
   free(B);
-#endif
-
-#if defined(RUN_OMP_GPU) || defined(RUN_OMP_CPU)
   free(B_OMP);
-#endif
 
   return fail;
 }

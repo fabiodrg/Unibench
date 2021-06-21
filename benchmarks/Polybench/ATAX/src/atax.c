@@ -112,39 +112,38 @@ void atax_OMP(DATA_TYPE *A, DATA_TYPE *x, DATA_TYPE *y, DATA_TYPE *tmp) {
 }
 
 int main(int argc, char **argv) {
-  int fail = 0;
-
-  DATA_TYPE *A;
-  DATA_TYPE *x;
-  DATA_TYPE *y;
-  DATA_TYPE *y_OMP;
-  DATA_TYPE *tmp;
-
-  A = (DATA_TYPE *)malloc(NX * NY * sizeof(DATA_TYPE));
-  x = (DATA_TYPE *)malloc(NY * sizeof(DATA_TYPE));
-  y = (DATA_TYPE *)malloc(NY * sizeof(DATA_TYPE));
-  y_OMP = (DATA_TYPE *)malloc(NY * sizeof(DATA_TYPE));
-  tmp = (DATA_TYPE *)malloc(NX * sizeof(DATA_TYPE));
-
   fprintf(stdout, "<< Matrix Transpose and Vector Multiplication >>\n");
 
+  // declare arrays and allocate memory
+  DATA_TYPE *A = (DATA_TYPE *)malloc(NX * NY * sizeof(DATA_TYPE));
+  DATA_TYPE *x = (DATA_TYPE *)malloc(NY * sizeof(DATA_TYPE));
+  DATA_TYPE *y = NULL;
+  DATA_TYPE *y_OMP = NULL;
+  DATA_TYPE *tmp = (DATA_TYPE *)malloc(NX * sizeof(DATA_TYPE));
+
+  // initialize arrays
   init_array(x, A);
 
 // run OMP on GPU or CPU if enabled
 #if defined(RUN_OMP_GPU) || defined(RUN_OMP_CPU)
+  y_OMP = (DATA_TYPE *)malloc(NY * sizeof(DATA_TYPE));
   BENCHMARK_OMP(atax_OMP(A, x, y_OMP, tmp));
 #endif
 
 // run sequential version if enabled
 #ifdef RUN_CPU_SEQ
+  y = (DATA_TYPE *)malloc(NY * sizeof(DATA_TYPE));
   BENCHMARK_CPU(atax(A, x, y, tmp));
 #endif
 
+  int fail = 0;
+// if test mode enabled, compare the results
 #ifdef RUN_TEST
   fail = compareResults(y, y_OMP);
   printf("Errors on OMP (threshold %4.2lf): %d\n", ERROR_THRESHOLD, fail);
 #endif
 
+  // Release memory
   free(A);
   free(x);
   free(y);

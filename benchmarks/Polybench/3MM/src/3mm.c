@@ -163,51 +163,49 @@ void mm3_OMP(DATA_TYPE *A, DATA_TYPE *B, DATA_TYPE *C, DATA_TYPE *D,
 }
 
 int main(int argc, char **argv) {
-  int fail = 0;
-
-  DATA_TYPE *A;
-  DATA_TYPE *B;
-  DATA_TYPE *C;
-  DATA_TYPE *D;
-  DATA_TYPE *E;
-  DATA_TYPE *F;
-  DATA_TYPE *G;
-  DATA_TYPE *E_OMP;
-  DATA_TYPE *F_OMP;
-  DATA_TYPE *G_OMP;
-
-  A = (DATA_TYPE *)malloc(NI * NK * sizeof(DATA_TYPE));
-  B = (DATA_TYPE *)malloc(NK * NJ * sizeof(DATA_TYPE));
-  C = (DATA_TYPE *)malloc(NJ * NM * sizeof(DATA_TYPE));
-  D = (DATA_TYPE *)malloc(NM * NL * sizeof(DATA_TYPE));
-  E = (DATA_TYPE *)malloc(NI * NJ * sizeof(DATA_TYPE));
-  F = (DATA_TYPE *)malloc(NJ * NL * sizeof(DATA_TYPE));
-  G = (DATA_TYPE *)malloc(NI * NL * sizeof(DATA_TYPE));
-  E_OMP = (DATA_TYPE *)calloc(NI * NJ, sizeof(DATA_TYPE));
-  F_OMP = (DATA_TYPE *)calloc(NJ * NL, sizeof(DATA_TYPE));
-  G_OMP = (DATA_TYPE *)calloc(NI * NL, sizeof(DATA_TYPE));
-
   fprintf(
       stdout,
       "<< Linear Algebra: 3 Matrix Multiplications (E=A.B; F=C.D; G=E.F) >>\n");
 
+  // declare arrays and allocate memory
+  DATA_TYPE *A = (DATA_TYPE *)malloc(NI * NK * sizeof(DATA_TYPE));
+  DATA_TYPE *B = (DATA_TYPE *)malloc(NK * NJ * sizeof(DATA_TYPE));
+  DATA_TYPE *C = (DATA_TYPE *)malloc(NJ * NM * sizeof(DATA_TYPE));
+  DATA_TYPE *D = (DATA_TYPE *)malloc(NM * NL * sizeof(DATA_TYPE));
+  DATA_TYPE *E = NULL;
+  DATA_TYPE *F = NULL;
+  DATA_TYPE *G = NULL;
+  DATA_TYPE *E_OMP = NULL;
+  DATA_TYPE *F_OMP = NULL;
+  DATA_TYPE *G_OMP = NULL;
+
+  // initialize arrays
   init_array(A, B, C, D);
 
 // run OMP on GPU or CPU if enabled
 #if defined(RUN_OMP_GPU) || defined(RUN_OMP_CPU)
+  E_OMP = (DATA_TYPE *)calloc(NI * NJ, sizeof(DATA_TYPE));
+  F_OMP = (DATA_TYPE *)calloc(NJ * NL, sizeof(DATA_TYPE));
+  G_OMP = (DATA_TYPE *)calloc(NI * NL, sizeof(DATA_TYPE));
   BENCHMARK_OMP(mm3_OMP(A, B, C, D, E_OMP, F_OMP, G_OMP));
 #endif
 
 // run sequential version if enabled
 #ifdef RUN_CPU_SEQ
+  E = (DATA_TYPE *)malloc(NI * NJ * sizeof(DATA_TYPE));
+  F = (DATA_TYPE *)malloc(NJ * NL * sizeof(DATA_TYPE));
+  G = (DATA_TYPE *)malloc(NI * NL * sizeof(DATA_TYPE));
   BENCHMARK_CPU(mm3(A, B, C, D, E, F, G));
 #endif
 
+  int fail = 0;
+// if test mode enabled, compare the results
 #ifdef RUN_TEST
   fail = compareResults(G, G_OMP);
   printf("Errors on OMP (threshold %4.2lf): %d\n", ERROR_THRESHOLD, fail);
 #endif
 
+  // Release memory
   free(A);
   free(B);
   free(C);

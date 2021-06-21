@@ -158,22 +158,17 @@ void mm2_OMP(DATA_TYPE *A, DATA_TYPE *B, DATA_TYPE *C, DATA_TYPE *D, DATA_TYPE *
 }
 
 int main(int argc, char **argv) {
-  int fail = 0;
-
-  DATA_TYPE *C;
-  DATA_TYPE *C_OMP;
-  DATA_TYPE *A;
-  DATA_TYPE *B;
-  DATA_TYPE *D;
-  DATA_TYPE *E;
-  DATA_TYPE *E_OMP;
-
-  A = (DATA_TYPE *)malloc(NI * NK * sizeof(DATA_TYPE));
-  B = (DATA_TYPE *)malloc(NK * NJ * sizeof(DATA_TYPE));
-  D = (DATA_TYPE *)malloc(NJ * NL * sizeof(DATA_TYPE));
-  
   fprintf(stdout,
           "<< Linear Algebra: 2 Matrix Multiplications (C=A.B; E=C.D) >>\n");
+
+  // declare arrays and allocate memory
+  DATA_TYPE *A = (DATA_TYPE *)malloc(NI * NK * sizeof(DATA_TYPE));
+  DATA_TYPE *B = (DATA_TYPE *)malloc(NK * NJ * sizeof(DATA_TYPE));
+  DATA_TYPE *D = (DATA_TYPE *)malloc(NJ * NL * sizeof(DATA_TYPE));
+  DATA_TYPE *C = NULL;
+  DATA_TYPE *C_OMP = NULL;
+  DATA_TYPE *E = NULL;
+  DATA_TYPE *E_OMP = NULL;
 
   // init operand matrices
   init_array(A, B, D);
@@ -192,11 +187,11 @@ int main(int argc, char **argv) {
   BENCHMARK_CPU(mm2(A, B, C, D, E));
 #endif
 
-// if TEST is enabled, then compare OMP results against sequential mode
+  // if TEST is enabled, then compare OMP results against sequential mode
+  int fail = 0;
 #ifdef RUN_TEST
   fail += compareResults(C, C_OMP);
   fail += compareResults(E, E_OMP);
-
   printf("Errors on OMP (threshold %4.2lf): %d\n", ERROR_THRESHOLD, fail);
 #endif
 
@@ -204,17 +199,10 @@ int main(int argc, char **argv) {
   free(A);
   free(B);
   free(D);
-
-#if defined(RUN_OMP_GPU) || defined(RUN_OMP_CPU)
   free(C_OMP);
   free(E_OMP);
-#endif
-
-#ifdef RUN_CPU_SEQ
   free(C);
   free(E);
-#endif
-
 
   return fail;
 }
