@@ -22,9 +22,6 @@
 
 #include "BenchmarksUtil.h"
 
-// define the error threshold for the results "not matching"
-#define ERROR_THRESHOLD 0.05
-
 #define NI SIZE
 #define NJ SIZE
 

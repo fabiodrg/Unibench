@@ -53,6 +53,9 @@
 #define OMP_DEVICE_ID 1
 #endif
 
+// define the error threshold for the results "not matching"
+#define ERROR_THRESHOLD 0.5
+
 /**
  * @brief Run function responsible to setup everything before running the actual
  * kernel.

@@ -21,9 +21,6 @@
 
 #include "BenchmarksUtil.h"
 
-// define the error threshold for the results "not matching"
-#define ERROR_THRESHOLD 0.05
-
 #define NI SIZE
 #define NJ SIZE
 #define NK SIZE
@@ -79,11 +76,6 @@ int compareResults(DATA_TYPE *E, DATA_TYPE *E_OMP) {
       }
     }
   }
-
-  // print results
-  printf("Non-Matching CPU-GPU Outputs Beyond Error Threshold of %4.2f "
-         "Percent: %d\n",
-         ERROR_THRESHOLD, fail);
   
   return fail;
 }
