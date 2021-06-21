@@ -86,7 +86,7 @@ endef
 # - Target specific compilation flags
 # - The output binary filename
 define device_test
-	$(call compile,$(2),$(1),-DTEST,$(3))
+	$(call compile,$(2),$(1),-DRUN_TEST,$(3))
 endef
 
 # compiles the sequential CPU version
