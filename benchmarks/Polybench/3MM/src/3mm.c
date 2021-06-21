@@ -27,6 +27,9 @@
 #define NL SIZE
 #define NM SIZE
 
+#pragma GCC diagnostic ignored "-Wmacro-redefined"
+#define ERROR_THRESHOLD 1.5
+
 /* Can switch DATA_TYPE between float and double */
 typedef float DATA_TYPE;
 
