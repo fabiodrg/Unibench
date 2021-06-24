@@ -23,18 +23,6 @@
 
 #include "BenchmarksUtil.h"
 
-// define the error threshold for the results "not matching"
-#define PERCENT_DIFF_ERROR_THRESHOLD 0.05
-
-/* Problem size. */
-#ifdef RUN_TEST
-#define SIZE 1100
-#elif RUN_BENCHMARK
-#define SIZE 9600
-#else
-#define SIZE 1000
-#endif
-
 /* Problem size */
 #define M SIZE
 #define N SIZE
@@ -72,7 +60,7 @@ void gramschmidt_OMP(DATA_TYPE *A, DATA_TYPE *R, DATA_TYPE *Q) {
   int i, j, k;
   DATA_TYPE nrm;
 
-  #pragma omp target data map(to: R[:M*N], Q[:M*N]) map(tofrom: A[:M*N]) device(DEVICE_ID)
+  #pragma omp target data map(to: R[:M*N], Q[:M*N]) map(tofrom: A[:M*N]) device(OMP_DEVICE_ID)
   {
     for (k = 0; k < N; k++) {
       // CPU
@@ -101,13 +89,12 @@ void gramschmidt_OMP(DATA_TYPE *A, DATA_TYPE *R, DATA_TYPE *Q) {
   }
 }
 
-void init_array(DATA_TYPE *A, DATA_TYPE *A2) {
+void init_array(DATA_TYPE *A) {
   int i, j;
 
   for (i = 0; i < M; i++) {
     for (j = 0; j < N; j++) {
       A[i * N + j] = ((DATA_TYPE)(i + 1) * (j + 1)) / (M + 1);
-      A2[i * N + j] = A[i * N + j];
     }
   }
 }
@@ -118,57 +105,49 @@ int compareResults(DATA_TYPE *A, DATA_TYPE *A_outputFromGpu) {
 
   for (i = 0; i < M; i++) {
     for (j = 0; j < N; j++) {
-      if (percentDiff(A[i * N + j], A_outputFromGpu[i * N + j]) >
-          PERCENT_DIFF_ERROR_THRESHOLD) {
+      if (percentDiff(A[i * N + j], A_outputFromGpu[i * N + j]) > ERROR_THRESHOLD) {
         fail++;
-        // printf("i: %d j: %d \n1: %f\n 2: %f\n", i, j, A[i*N + j],
-        // A_outputFromGpu[i*N + j]);
       }
     }
   }
-
-  // Print results
-  printf("Non-Matching CPU-GPU Outputs Beyond Error Threshold of %4.2f "
-         "Percent: %d\n",
-         PERCENT_DIFF_ERROR_THRESHOLD, fail);
 
   return fail;
 }
 
 int main(int argc, char *argv[]) {
-  double t_start, t_end;
-  int fail = 0;
-
-  DATA_TYPE *A;
-  DATA_TYPE *A_outputFromGpu;
-  DATA_TYPE *R;
-  DATA_TYPE *Q;
-
-  A = (DATA_TYPE *)malloc(M * N * sizeof(DATA_TYPE));
-  A_outputFromGpu = (DATA_TYPE *)malloc(M * N * sizeof(DATA_TYPE));
-  R = (DATA_TYPE *)malloc(M * N * sizeof(DATA_TYPE));
-  Q = (DATA_TYPE *)malloc(M * N * sizeof(DATA_TYPE));
-
   fprintf(stdout, "<< Gram-Schmidt decomposition >>\n");
 
-  init_array(A, A_outputFromGpu);
+  // declare arrays and allocate memory
+  DATA_TYPE *A = NULL;
+  DATA_TYPE *A_OMP = NULL;
+  DATA_TYPE *R = (DATA_TYPE *)malloc(M * N * sizeof(DATA_TYPE));
+  DATA_TYPE *Q = (DATA_TYPE *)malloc(M * N * sizeof(DATA_TYPE));
 
-  t_start = rtclock();
-  gramschmidt_OMP(A_outputFromGpu, R, Q);
-  t_end = rtclock();
-  fprintf(stdout, "GPU Runtime: %0.6lfs\n", t_end - t_start);
 
-#ifdef RUN_TEST
-  t_start = rtclock();
-  gramschmidt(A, R, Q);
-  t_end = rtclock();
-  fprintf(stdout, "CPU Runtime: %0.6lfs\n", t_end - t_start);
-
-  fail = compareResults(A, A_outputFromGpu);
+// run OMP on GPU or CPU if enabled
+#if defined(RUN_OMP_GPU) || defined(RUN_OMP_CPU)
+  A_OMP = (DATA_TYPE *) malloc(M * N * sizeof(DATA_TYPE));
+  init_array(A_OMP);
+  BENCHMARK_OMP(gramschmidt_OMP(A_OMP, R, Q));
 #endif
 
+// run sequential version if enabled
+#ifdef RUN_CPU_SEQ
+  A = (DATA_TYPE *) malloc(M * N * sizeof(DATA_TYPE));
+  init_array(A);
+  BENCHMARK_CPU(gramschmidt(A, R, Q));
+#endif
+
+  // if TEST is enabled, then compare OMP results against sequential mode
+  int fail = 0;
+#ifdef RUN_TEST
+  fail = compareResults(A, A_OMP);
+  printf("Errors on OMP (threshold %4.2lf): %d\n", ERROR_THRESHOLD, fail);
+#endif
+
+  // release memory
   free(A);
-  free(A_outputFromGpu);
+  free(A_OMP);
   free(R);
   free(Q);
 
