@@ -21,33 +21,29 @@
 
 #include "BenchmarksUtil.h"
 
-// define the error threshold for the results "not matching"
-#define PERCENT_DIFF_ERROR_THRESHOLD 0.05
-
-/* Problem size. */
-#ifndef SIZE
-#define SIZE 1024
-#endif
-
 #define N SIZE
 
 /* Can switch DATA_TYPE between float and double */
 typedef float DATA_TYPE;
 
-void init_array(DATA_TYPE *A, DATA_TYPE *x1, DATA_TYPE *x2, DATA_TYPE *y1,
-                DATA_TYPE *y2, DATA_TYPE *x1_gpu, DATA_TYPE *x2_gpu) {
+void init_common_arrays(DATA_TYPE *A, DATA_TYPE *y1, DATA_TYPE *y2) {
   int i, j;
 
   for (i = 0; i < N; i++) {
-    x1[i] = ((DATA_TYPE)i) / N;
-    x2[i] = ((DATA_TYPE)i + 1) / N;
-    x1_gpu[i] = x1[i];
-    x2_gpu[i] = x2[i];
     y1[i] = ((DATA_TYPE)i + 3) / N;
     y2[i] = ((DATA_TYPE)i + 4) / N;
     for (j = 0; j < N; j++) {
       A[i * N + j] = ((DATA_TYPE)i * j) / N;
     }
+  }
+}
+
+void init_vector_x(DATA_TYPE *x1, DATA_TYPE *x2) {
+  int i, j;
+
+  for (i = 0; i < N; i++) {
+    x1[i] = ((DATA_TYPE)i) / N;
+    x2[i] = ((DATA_TYPE)i + 1) / N;
   }
 }
 
@@ -71,7 +67,7 @@ void runMvt(DATA_TYPE *a, DATA_TYPE *x1, DATA_TYPE *x2, DATA_TYPE *y1,
 void runMvt_OMP(DATA_TYPE *a, DATA_TYPE *x1, DATA_TYPE *x2, DATA_TYPE *y1,
                 DATA_TYPE *y2) {
   int i, j;
-  #pragma omp target teams map(to: a[:N*N], y1[:N], y2[:N]) map(tofrom: x1[:N], x2[:N]) device(DEVICE_ID)                                                    
+  #pragma omp target teams map(to: a[:N*N], y1[:N], y2[:N]) map(tofrom: x1[:N], x2[:N]) device(OMP_DEVICE_ID)                                                    
   {
     #pragma omp distribute parallel for private(j)
     for (i = 0; i < N; i++) {
@@ -96,79 +92,63 @@ int compareResults(DATA_TYPE *x1, DATA_TYPE *x1_outputFromGpu, DATA_TYPE *x2,
 
   for (i = 0; i < N; i++) {
     if (percentDiff(x1[i], x1_outputFromGpu[i]) >
-        PERCENT_DIFF_ERROR_THRESHOLD) {
+        ERROR_THRESHOLD) {
       fail++;
     }
 
     if (percentDiff(x2[i], x2_outputFromGpu[i]) >
-        PERCENT_DIFF_ERROR_THRESHOLD) {
+        ERROR_THRESHOLD) {
       fail++;
     }
   }
-
-  // Print results
-  printf("Non-Matching CPU-GPU Outputs Beyond Error Threshold of %4.2f "
-         "Percent: %d\n",
-         PERCENT_DIFF_ERROR_THRESHOLD, fail);
 
   return fail;
 }
 
 int main() {
-  double t_start, t_end;
-  int fail = 0;
-
-  /** Variable declaration */
-  DATA_TYPE *a;
-  DATA_TYPE *x1;
-  DATA_TYPE *x2;
-  DATA_TYPE *x1_outputFromGpu;
-  DATA_TYPE *x2_outputFromGpu;
-  DATA_TYPE *y_1;
-  DATA_TYPE *y_2;
-
-  /** Memory allocation */
-  a = (DATA_TYPE *)malloc(N * N * sizeof(DATA_TYPE));
-  x1 = (DATA_TYPE *)malloc(N * sizeof(DATA_TYPE));
-  x2 = (DATA_TYPE *)malloc(N * sizeof(DATA_TYPE));
-  x1_outputFromGpu = (DATA_TYPE *)malloc(N * sizeof(DATA_TYPE));
-  x2_outputFromGpu = (DATA_TYPE *)malloc(N * sizeof(DATA_TYPE));
-  y_1 = (DATA_TYPE *)malloc(N * sizeof(DATA_TYPE));
-  y_2 = (DATA_TYPE *)malloc(N * sizeof(DATA_TYPE));
-  
   fprintf(stdout, "<< Matrix Vector Product and Transpose >>\n");
 
-  /** Initialize */
-  init_array(a, x1, x2, y_1, y_2, x1_outputFromGpu, x2_outputFromGpu);
+  // Declare arrays and allocate memory for common arrays
+  DATA_TYPE *a = (DATA_TYPE *)malloc(N * N * sizeof(DATA_TYPE));
+  DATA_TYPE *x1 = NULL;
+  DATA_TYPE *x2 = NULL;
+  DATA_TYPE *x1_OMP = NULL;
+  DATA_TYPE *x2_OMP = NULL;
+  DATA_TYPE *y_1 = (DATA_TYPE *)malloc(N * sizeof(DATA_TYPE));
+  DATA_TYPE *y_2 = (DATA_TYPE *)malloc(N * sizeof(DATA_TYPE));
 
-/** Enable all modes if correctness test mode enabled */
-#ifdef RUN_TEST
-  #define OMP_GPU
-  #define CPU_SEQ
-  #define N_RUNS 1
+  // Initialize common memory
+  init_common_arrays(a, y_1, y_2);
+
+// run OMP on GPU or CPU if enabled
+#if defined(RUN_OMP_GPU) || defined(RUN_OMP_CPU)
+  x1_OMP = (DATA_TYPE *) malloc(N * sizeof(DATA_TYPE));
+  x2_OMP = (DATA_TYPE *) malloc(N * sizeof(DATA_TYPE));
+  init_vector_x(x1_OMP, x2_OMP);
+  BENCHMARK_OMP(runMvt_OMP(a, x1_OMP, x2_OMP, y_1, y_2));
 #endif
 
-/** Run parallel on GPU */
-#ifdef OMP_GPU
-  BENCHMARK_GPU(runMvt_OMP(a, x1_outputFromGpu, x2_outputFromGpu, y_1, y_2));
-#endif
-
-/** Run sequential on CPU */
-#ifdef CPU_SEQ
+// run sequential version if enabled
+#ifdef RUN_CPU_SEQ
+  x1 = (DATA_TYPE *) malloc(N * sizeof(DATA_TYPE));
+  x2 = (DATA_TYPE *) malloc(N * sizeof(DATA_TYPE));
+  init_vector_x(x1, x2);
   BENCHMARK_CPU(runMvt(a, x1, x2, y_1, y_2));
 #endif
 
-/** Compare results if correctness test is enabled */
+  // if TEST is enabled, then compare OMP results against sequential mode
+  int fail = 0;
 #ifdef RUN_TEST
-  fail = compareResults(x1, x1_outputFromGpu, x2, x2_outputFromGpu);
+  fail = compareResults(x1, x1_OMP, x2, x2_OMP);
+  printf("Errors on OMP (threshold %4.2lf): %d\n", ERROR_THRESHOLD, fail);
 #endif
 
-  /** Release memory */
+  // Release memory
   free(a);
   free(x1);
   free(x2);
-  free(x1_outputFromGpu);
-  free(x2_outputFromGpu);
+  free(x1_OMP);
+  free(x2_OMP);
   free(y_1);
   free(y_2);
 
