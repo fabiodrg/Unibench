@@ -17,17 +17,6 @@
 #include <sys/time.h>
 #include <unistd.h>
 
-// define the error threshold for the results "not matching"
-#define ERROR_THRESHOLD 0.05
-
-#ifdef RUN_TEST
-#define SIZE 1100
-#elif RUN_BENCHMARK
-#define SIZE 9600
-#else
-#define SIZE 1000
-#endif
-
 /* Problem size */
 #define N SIZE
 #define M SIZE
@@ -40,37 +29,38 @@
 /* Can switch DATA_TYPE between float and double */
 typedef float DATA_TYPE;
 
-void init_arrays(DATA_TYPE *A, DATA_TYPE *C, DATA_TYPE *D) {
+void init_array_A(DATA_TYPE *A) {
   int i, j;
 
   for (i = 0; i < N; i++) {
     for (j = 0; j < M; j++) {
       A[i * M + j] = ((DATA_TYPE)i * j) / N;
     }
+  }
+}
+
+void init_array_C(DATA_TYPE *C) {
+  int i, j;
+
+  for (i = 0; i < N; i++) {
     for (j = 0; j < M; j++) {
       C[i * M + j] = ((DATA_TYPE)i * j + 2) / N;
-      D[i * M + j] = ((DATA_TYPE)i * j + 2) / N;
     }
   }
 }
 
-int compareResults(DATA_TYPE *C, DATA_TYPE *D) {
+int compareResults(DATA_TYPE *C, DATA_TYPE *C_OMP) {
   int i, j, fail;
   fail = 0;
 
   // Compare C with D
   for (i = 0; i < N; i++) {
     for (j = 0; j < M; j++) {
-      if (percentDiff(C[i * M + j], D[i * M + j]) > ERROR_THRESHOLD) {
+      if (percentDiff(C[i * M + j], C_OMP[i * M + j]) > ERROR_THRESHOLD) {
         fail++;
       }
     }
   }
-
-  // print results
-  printf("Non-Matching CPU-GPU Outputs Beyond Error Threshold of %4.2f "
-         "Percent: %d\n",
-         ERROR_THRESHOLD, fail);
 
   return fail;
 }
@@ -93,66 +83,62 @@ void syrk(DATA_TYPE *A, DATA_TYPE *C) {
   }
 }
 
-void syrkGPU(DATA_TYPE *A, DATA_TYPE *Dinit, DATA_TYPE *D1, DATA_TYPE *D2) {
-  double t_start, t_end;
-
-  t_start = rtclock();
-
-  #pragma omp target teams map(to : A[ : N *M], Dinit[ : N *M]) map(tofrom : D1[ : N *M], D2[ : N *M]) device(DEVICE_ID)
+void syrkOMP(DATA_TYPE *A, DATA_TYPE *C) {
+  #pragma omp target teams map(to : A[:N*M]) map(tofrom : C[:N*M]) device(OMP_DEVICE_ID)
   {
     #pragma omp distribute parallel for collapse(2)
     for (int i = 0; i < N; i++) {
       for (int j = 0; j < M; j++) {
-        D1[i * M + j] = Dinit[i * M + j] * beta;
+        C[i * M + j] *= beta;
       }
     }
     #pragma omp distribute parallel for collapse(2)
     for (int i = 0; i < N; i++) {
       for (int j = 0; j < M; j++) {
-        D2[i * N + j] = D1[i * N + j];
         for (int k = 0; k < M; k++) {
-          D2[i * N + j] += alpha * A[i * M + k] * A[j * M + k];
+          C[i * N + j] += alpha * A[i * M + k] * A[j * M + k];
         }
       }
     }
   }
-
-  t_end = rtclock();
-  fprintf(stdout, "GPU Runtime: %0.6lfs\n", t_end - t_start);
 }
 
 int main() {
-  double t_start, t_end;
-  int fail = 0;
-
-  DATA_TYPE *A;
-  DATA_TYPE *C;
-  DATA_TYPE *Dinit;
-  DATA_TYPE *D1;
-  DATA_TYPE *D2;
-
-  A = (DATA_TYPE *)malloc(N * M * sizeof(DATA_TYPE));
-  C = (DATA_TYPE *)malloc(N * M * sizeof(DATA_TYPE));
-  Dinit = (DATA_TYPE *)malloc(N * M * sizeof(DATA_TYPE));
-  D1 = (DATA_TYPE *)calloc(N * M, sizeof(DATA_TYPE));
-  D2 = (DATA_TYPE *)calloc(N * M, sizeof(DATA_TYPE));
-
   fprintf(stdout, "<< Symmetric rank-k operations >>\n");
 
-  init_arrays(A, C, Dinit);
-  syrkGPU(A, Dinit, D1, D2);
+  // declare arrays and allocate memory for common arrays
+  DATA_TYPE *A = (DATA_TYPE *) malloc(N * M * sizeof(DATA_TYPE));
+  DATA_TYPE *C = NULL;
+  DATA_TYPE *C_OMP = NULL;
 
-#ifdef RUN_TEST
-  t_start = rtclock();
-  syrk(A, C);
-  t_end = rtclock();
-  fprintf(stdout, "CPU Runtime: %0.6lfs\n", t_end - t_start);
+  // init array A
+  init_array_A(A);
 
-  fail = compareResults(C, D2);
+// run OMP on GPU or CPU if enabled
+#if defined(RUN_OMP_GPU) || defined(RUN_OMP_CPU)
+  C_OMP = (DATA_TYPE *) malloc(N * M * sizeof(DATA_TYPE));
+  init_array_C(C_OMP);
+  BENCHMARK_OMP(syrkOMP(A, C_OMP));
 #endif
 
+// run sequential version if enabled
+#ifdef RUN_CPU_SEQ
+  C = (DATA_TYPE *) malloc(N * M * sizeof(DATA_TYPE));
+  init_array_C(C);
+  BENCHMARK_CPU(syrk(A, C));
+#endif
+
+  int fail = 0;
+// if TEST is enabled, then compare OMP results against sequential mode
+#ifdef RUN_TEST
+  fail = compareResults(C, C_OMP);
+  printf("Errors on OMP (threshold %4.2lf): %d\n", ERROR_THRESHOLD, fail);
+#endif
+
+  // release memory
   free(A);
   free(C);
-  free(Dinit);
+  free(C_OMP);
+
   return fail;
 }
