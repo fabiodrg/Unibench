@@ -7,7 +7,7 @@
  * Contacts: Marcio M Pereira <mpereira@ic.unicamp.br>
  *           Rafael Cardoso F Sousa <rafael.cardoso@students.ic.unicamp.br>
  *           Luís Felipe Mattos <ra107822@students.ic.unicamp.br>
-*/
+ */
 
 #include <assert.h>
 #include <math.h>
@@ -20,17 +20,6 @@
 #endif
 
 #include "BenchmarksUtil.h"
-
-// define the error threshold for the results "not matching"
-#define PERCENT_DIFF_ERROR_THRESHOLD 1.05
-
-#ifdef RUN_TEST
-#define SIZE 1100
-#elif RUN_BENCHMARK
-#define SIZE 9600
-#else
-#define SIZE 1000
-#endif
 
 /* Problem size */
 #define M SIZE
@@ -62,14 +51,11 @@ int compareResults(DATA_TYPE *symmat, DATA_TYPE *symmat_outputFromGpu) {
     for (j = 1; j < (N + 1); j++) {
       if (percentDiff(symmat[i * (N + 1) + j],
                       symmat_outputFromGpu[i * (N + 1) + j]) >
-          PERCENT_DIFF_ERROR_THRESHOLD) {
+          ERROR_THRESHOLD) {
         fail++;
       }
     }
   }
-  printf("Non-Matching CPU-GPU Outputs Beyond Error Threshold of %4.2f "
-         "Percent: %d\n",
-         PERCENT_DIFF_ERROR_THRESHOLD, fail);
   return fail;
 }
 
@@ -105,14 +91,16 @@ void covariance(DATA_TYPE *data, DATA_TYPE *symmat, DATA_TYPE *mean) {
   }
 }
 
-void covariance_OMP(DATA_TYPE *data, DATA_TYPE *data2, DATA_TYPE *symmat,
-                    DATA_TYPE *mean) {
+void covariance_OMP(DATA_TYPE *data, DATA_TYPE *symmat, DATA_TYPE *mean) {
 
-/* Determine mean of column vectors of input data matrix */
+  /* Determine mean of column vectors of input data matrix */
 
-  #pragma omp target  data map(to: data[:(M+1)*(N+1)]) map(alloc: mean[:(M+1)]) map(tofrom: symmat[:(M+1)*(N+1)]) device(DEVICE_ID)
+  #pragma omp target data \
+    map(to: data[:(M + 1) * (N + 1)]) \
+    map(alloc: mean[:(M + 1)]) \
+    map(tofrom: symmat[:(M + 1) * (N + 1)]) device(OMP_DEVICE_ID)
   {
-    #pragma omp target teams distribute parallel for device(DEVICE_ID)
+    #pragma omp target teams distribute parallel for device(OMP_DEVICE_ID)
     for (int j = 1; j < (M + 1); j++) {
       mean[j] = 0.0;
       for (int i = 1; i < (N + 1); i++) {
@@ -122,21 +110,21 @@ void covariance_OMP(DATA_TYPE *data, DATA_TYPE *data2, DATA_TYPE *symmat,
     }
 
     /* Center the column vectors. */
-    #pragma omp target teams distribute parallel for collapse(2) device(DEVICE_ID)
+    #pragma omp target teams distribute parallel for collapse(2) device(OMP_DEVICE_ID)
     for (int i = 1; i < (N + 1); i++) {
       for (int j = 1; j < (M + 1); j++) {
-        data2[i * (M + 1) + j] = data[i * (M + 1) + j] - mean[j];
+        data[i * (M + 1) + j] -= mean[j];
       }
     }
 
     /* Calculate the m * m covariance matrix. */
-    #pragma omp target teams distribute parallel for device(DEVICE_ID)
+    #pragma omp target teams distribute parallel for device(OMP_DEVICE_ID)
     for (int j1 = 1; j1 < (M + 1); j1++) {
       for (int j2 = j1; j2 < (M + 1); j2++) {
         symmat[j1 * (M + 1) + j2] = 0.0;
         for (int i = 1; i < N + 1; i++) {
           symmat[j1 * (M + 1) + j2] +=
-            data2[i * (M + 1) + j1] * data2[i * (M + 1) + j2];
+              data[i * (M + 1) + j1] * data[i * (M + 1) + j2];
         }
         symmat[j2 * (M + 1) + j1] = symmat[j1 * (M + 1) + j2];
       }
@@ -145,48 +133,44 @@ void covariance_OMP(DATA_TYPE *data, DATA_TYPE *data2, DATA_TYPE *symmat,
 }
 
 int main() {
-  double t_start, t_end;
-  int fail = 0;
-
-  DATA_TYPE *data;
-  DATA_TYPE *data_GPU;
-  DATA_TYPE *data2_GPU;
-  DATA_TYPE *symmat;
-  DATA_TYPE *mean;
-  DATA_TYPE *mean_GPU;
-  DATA_TYPE *symmat_outputFromGpu;
-
-  data = (DATA_TYPE *)calloc((M + 1) * (N + 1), sizeof(DATA_TYPE));
-  data2_GPU = (DATA_TYPE *)calloc((M + 1) * (N + 1), sizeof(DATA_TYPE));
-  symmat = (DATA_TYPE *)calloc((M + 1) * (M + 1), sizeof(DATA_TYPE));
-  mean = (DATA_TYPE *)calloc((M + 1), sizeof(DATA_TYPE));
-  symmat_outputFromGpu =
-      (DATA_TYPE *)calloc((M + 1) * (M + 1), sizeof(DATA_TYPE));
-  mean_GPU = (DATA_TYPE *)calloc((M + 1), sizeof(DATA_TYPE));
-
   fprintf(stdout, "<< Covariance Computation >>\n");
 
-  init_arrays(data);
+  // declare arrays and allocate common memory
+  DATA_TYPE *data = NULL;
+  DATA_TYPE *data_OMP = NULL;
+  DATA_TYPE *symmat = NULL;
+  DATA_TYPE *symmat_OMP = NULL;
+  DATA_TYPE *mean = (DATA_TYPE *)calloc((M + 1), sizeof(DATA_TYPE));
 
-  t_start = rtclock();
-  covariance_OMP(data, data2_GPU, symmat_outputFromGpu, mean_GPU);
-  t_end = rtclock();
-  fprintf(stdout, "GPU Runtime: %0.6lfs\n", t_end - t_start);
-
-#ifdef RUN_TEST
-
-  t_start = rtclock();
-  covariance(data, symmat, mean);
-  t_end = rtclock();
-  fprintf(stdout, "CPU Runtime: %0.6lfs\n", t_end - t_start);
-
-  fail = compareResults(symmat, symmat_outputFromGpu);
+// run OMP on GPU or CPU if enabled
+#if defined(RUN_OMP_GPU) || defined(RUN_OMP_CPU)
+  symmat_OMP = (DATA_TYPE *)calloc((M + 1) * (M + 1), sizeof(DATA_TYPE));
+  data_OMP = (DATA_TYPE *)calloc((M + 1) * (N + 1), sizeof(DATA_TYPE));
+  init_arrays(data_OMP);
+  BENCHMARK_OMP(covariance_OMP(data_OMP, symmat_OMP, mean));
 #endif
 
+// run sequential version if enabled
+#ifdef RUN_CPU_SEQ
+  symmat = (DATA_TYPE *)calloc((M + 1) * (M + 1), sizeof(DATA_TYPE));
+  data = (DATA_TYPE *)calloc((M + 1) * (N + 1), sizeof(DATA_TYPE));
+  init_arrays(data);
+  BENCHMARK_CPU(covariance(data, symmat, mean));
+#endif
+
+  int fail = 0;
+// if TEST is enabled, then compare OMP results against sequential mode
+#ifdef RUN_TEST
+  fail = compareResults(symmat, symmat_OMP);
+  printf("Errors on OMP (threshold %4.2lf): %d\n", ERROR_THRESHOLD, fail);
+#endif
+
+  // release memory
   free(data);
+  free(data_OMP);
   free(symmat);
+  free(symmat_OMP);
   free(mean);
-  free(symmat_outputFromGpu);
 
   return fail;
 }
