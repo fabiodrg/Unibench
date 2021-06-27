@@ -1,5 +1,6 @@
 -DRUN_OMP_GPU
 -DRUN_TEST
+-D_OPENMP
 -I./benchmarks/common
 -Wall
 -Wno-unknown-pragmas
