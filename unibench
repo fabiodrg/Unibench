@@ -6,13 +6,22 @@ FAST_KERNELS=(
     "Polybench/2DCONV"
     "Polybench/ATAX"
     "Polybench/BICG"
+    "Polybench/GESUMMV"
+    "Polybench/MVT"
 )
 N_FAST_RUNS=25
 
 SLOW_KERNELS=(
-    "Polybench/3DCONV"
     "Polybench/2MM"
+    "Polybench/3DCONV"
     "Polybench/3MM"
+    "Polybench/CORR"
+    "Polybench/COVAR"
+    "Polybench/FDTD-2D"
+    "Polybench/GEMM"
+    "Polybench/GRAMSCHM"
+    "Polybench/SYR2K"
+    "Polybench/SYRK"
 )
 N_SLOW_KERNELS=5
 
