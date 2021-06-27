@@ -26,7 +26,8 @@
 #define NK SIZE
 #define NL SIZE
 
-#pragma GCC diagnostic ignored "-Wmacro-redefined"
+#pragma GCC diagnostic ignored "-Wbuiltin-macro-redefined"
+#pragma clang diagnostic ignored "-Wmacro-redefined"
 #define ERROR_THRESHOLD 1.5
 
 /* Can switch DATA_TYPE between float and double */
