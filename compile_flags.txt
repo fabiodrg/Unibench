@@ -1,4 +1,5 @@
--DRUN_CPU_SEQ
+-DRUN_OMP_GPU
+-DRUN_TEST
 -I./benchmarks/common
 -Wall
 -Wno-unknown-pragmas
