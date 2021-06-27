@@ -68,6 +68,11 @@ benchmark_cpu () {
 }
 
 benchmark_omp_cpu () {
+    export OMP_NUM_THREADS=4
+    export OMP_PLACES=cores
+    export OMP_PROC_BIND=close
+    export OMP_SCHEDULE=static
+    export OMP_DYNAMIC=false
     __invoke_make "run-omp-cpu"
 }
 
