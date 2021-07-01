@@ -138,6 +138,7 @@ test: test-cpu test-gpu
 define run
 	@date > $(1)
 	@for i in `seq 1 $(RUNS)`; do stdbuf -oL $(2) >> $(1); done
+	@$(call log_info,"Log available at: $(1)")
 endef
 
 run-cpu: mkdir-logs compile-cpu
