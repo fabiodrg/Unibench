@@ -108,7 +108,7 @@ void runFdtd_OMP(DATA_TYPE *_fict_, DATA_TYPE *ex, DATA_TYPE *ey,
                  DATA_TYPE *hz) {
   int t, i, j;
   
-  #pragma omp target data  map(to : _fict_[ : tmax], ex[ : (NX *(NY + 1))], ey[ : ((NX + 1) * NY)]) map(tofrom : hz[ : (NX *(NY + 1))]) device(OMP_DEVICE_ID)
+  #pragma omp target data  map(to : _fict_[ : tmax], ex[ : (NX *(NY + 1))], ey[ : ((NX + 1) * NY)]) map(tofrom : hz[ : NX *NY]) device(OMP_DEVICE_ID)
   {
     for (t = 0; t < tmax; t++) {
       #pragma omp target teams distribute parallel for device(OMP_DEVICE_ID)
