@@ -126,6 +126,9 @@ int main() {
   x2_OMP = (DATA_TYPE *) malloc(N * sizeof(DATA_TYPE));
   init_vector_x(x1_OMP, x2_OMP);
   BENCHMARK_OMP(runMvt_OMP(a, x1_OMP, x2_OMP, y_1, y_2));
+  // prevent dead-code elimination
+  DCE_PREVENT(x1_OMP, N);
+  DCE_PREVENT(x2_OMP, N);
 #endif
 
 // run sequential version if enabled
@@ -134,6 +137,9 @@ int main() {
   x2 = (DATA_TYPE *) malloc(N * sizeof(DATA_TYPE));
   init_vector_x(x1, x2);
   BENCHMARK_CPU(runMvt(a, x1, x2, y_1, y_2));
+  // prevent dead-code elimination
+  DCE_PREVENT(x1, N);
+  DCE_PREVENT(x2, N);
 #endif
 
   // if TEST is enabled, then compare OMP results against sequential mode

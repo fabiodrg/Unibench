@@ -132,6 +132,9 @@ int main(int argc, char **argv) {
   s_OMP = (DATA_TYPE *)malloc(NY * sizeof(DATA_TYPE));
   q_OMP = (DATA_TYPE *)malloc(NX * sizeof(DATA_TYPE));
   BENCHMARK_OMP(bicg_OMP(A, r, s_OMP, p, q_OMP));
+  // prevent dead code elimination
+  DCE_PREVENT(s_OMP, NY);
+  DCE_PREVENT(q_OMP, NX);
 #endif
 
 // run sequential version if enabled
@@ -139,6 +142,9 @@ int main(int argc, char **argv) {
   s = (DATA_TYPE *)malloc(NY * sizeof(DATA_TYPE));
   q = (DATA_TYPE *)malloc(NX * sizeof(DATA_TYPE));
   BENCHMARK_CPU(bicg(A, r, s, p, q));
+  // prevent dead code elimination
+  DCE_PREVENT(s, NY);
+  DCE_PREVENT(q, NX);
 #endif
 
   int fail = 0;

@@ -163,6 +163,8 @@ int main() {
   init_arrays(_fict_, ex, ey, hz_outputFromGpu);
   // benchmark
   BENCHMARK_OMP(runFdtd_OMP(_fict_, ex, ey, hz_outputFromGpu));
+  // prevent dead-code elimination
+  DCE_PREVENT(hz_outputFromGpu, NX*NY);
 #endif
 
 // run sequential version if enabled
@@ -181,6 +183,8 @@ int main() {
   init_arrays(_fict_, ex, ey, hz);
   // benchmark
   BENCHMARK_CPU(runFdtd(_fict_, ex, ey, hz));
+  // prevent dead-code elimination
+  DCE_PREVENT(hz, NX*NY);
 #endif
 
   // if TEST is enabled, then compare OMP results against sequential mode

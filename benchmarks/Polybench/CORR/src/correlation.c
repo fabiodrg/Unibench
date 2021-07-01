@@ -220,12 +220,16 @@ int main() {
 #if defined(RUN_OMP_GPU) || defined(RUN_OMP_CPU)
   symmat_GPU = (DATA_TYPE *) malloc((M + 1) * (N + 1) * sizeof(DATA_TYPE));
   BENCHMARK_OMP(correlation_OMP(data, mean, stddev, symmat_GPU));
+  // prevent dead-code elimination
+  DCE_PREVENT(symmat_GPU, (M+1)*(N+1));
 #endif
 
 // run sequential version if enabled
 #ifdef RUN_CPU_SEQ
   symmat = (DATA_TYPE *) malloc((M + 1) * (N + 1) * sizeof(DATA_TYPE));
   BENCHMARK_CPU(correlation(data, mean, stddev, symmat));
+  // prevent dead-code elimination
+  DCE_PREVENT(symmat, (M+1)*(N+1));
 #endif
 
   int fail = 0;

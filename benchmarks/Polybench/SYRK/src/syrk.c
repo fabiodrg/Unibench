@@ -119,6 +119,8 @@ int main() {
   C_OMP = (DATA_TYPE *) malloc(N * M * sizeof(DATA_TYPE));
   init_array_C(C_OMP);
   BENCHMARK_OMP(syrkOMP(A, C_OMP));
+   // prevent dead-code elimination
+  DCE_PREVENT(C_OMP, N*M);
 #endif
 
 // run sequential version if enabled
@@ -126,6 +128,8 @@ int main() {
   C = (DATA_TYPE *) malloc(N * M * sizeof(DATA_TYPE));
   init_array_C(C);
   BENCHMARK_CPU(syrk(A, C));
+  // prevent dead-code elimination
+  DCE_PREVENT(C, N*M);
 #endif
 
   int fail = 0;

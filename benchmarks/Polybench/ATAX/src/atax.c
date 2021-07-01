@@ -120,12 +120,16 @@ int main(int argc, char **argv) {
 #if defined(RUN_OMP_GPU) || defined(RUN_OMP_CPU)
   y_OMP = (DATA_TYPE *)malloc(NY * sizeof(DATA_TYPE));
   BENCHMARK_OMP(atax_OMP(A, x, y_OMP, tmp));
+  // prevent dead code elimination
+  DCE_PREVENT(y_OMP, NY);
 #endif
 
 // run sequential version if enabled
 #ifdef RUN_CPU_SEQ
   y = (DATA_TYPE *)malloc(NY * sizeof(DATA_TYPE));
   BENCHMARK_CPU(atax(A, x, y, tmp));
+  // prevent dead code elimination
+  DCE_PREVENT(y, NY);
 #endif
 
   int fail = 0;

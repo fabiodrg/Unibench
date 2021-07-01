@@ -185,6 +185,8 @@ int main(int argc, char **argv) {
   F_OMP = (DATA_TYPE *)calloc(NJ * NL, sizeof(DATA_TYPE));
   G_OMP = (DATA_TYPE *)calloc(NI * NL, sizeof(DATA_TYPE));
   BENCHMARK_OMP(mm3_OMP(A, B, C, D, E_OMP, F_OMP, G_OMP));
+  // prevent dead code elimination
+  DCE_PREVENT(G_OMP, NI*NL);
 #endif
 
 // run sequential version if enabled
@@ -193,6 +195,8 @@ int main(int argc, char **argv) {
   F = (DATA_TYPE *)malloc(NJ * NL * sizeof(DATA_TYPE));
   G = (DATA_TYPE *)malloc(NI * NL * sizeof(DATA_TYPE));
   BENCHMARK_CPU(mm3(A, B, C, D, E, F, G));
+  // prevent dead code elimination
+  DCE_PREVENT(G, NI*NL);
 #endif
 
   int fail = 0;

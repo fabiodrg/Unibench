@@ -129,6 +129,8 @@ int main(int argc, char *argv[]) {
   A_OMP = (DATA_TYPE *) malloc(M * N * sizeof(DATA_TYPE));
   init_array(A_OMP);
   BENCHMARK_OMP(gramschmidt_OMP(A_OMP, R, Q));
+  // prevent dead-code elimination
+  DCE_PREVENT(A_OMP, M*N);
 #endif
 
 // run sequential version if enabled
@@ -136,6 +138,8 @@ int main(int argc, char *argv[]) {
   A = (DATA_TYPE *) malloc(M * N * sizeof(DATA_TYPE));
   init_array(A);
   BENCHMARK_CPU(gramschmidt(A, R, Q));
+  // prevent dead-code elimination
+  DCE_PREVENT(A, M*N);
 #endif
 
   // if TEST is enabled, then compare OMP results against sequential mode

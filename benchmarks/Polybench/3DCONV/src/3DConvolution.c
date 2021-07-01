@@ -167,12 +167,16 @@ int main(int argc, char *argv[]) {
 #if defined(RUN_OMP_GPU) || defined(RUN_OMP_CPU)
   B_OMP = (DATA_TYPE *)malloc(size * sizeof(DATA_TYPE));
   BENCHMARK_OMP(conv3D_OMP(A, B_OMP));
+  // prevent dead code elimination
+  DCE_PREVENT(B_OMP, size);
 #endif
 
 // run sequential version if enabled
 #ifdef RUN_CPU_SEQ
   B = (DATA_TYPE *)malloc(size * sizeof(DATA_TYPE));
   BENCHMARK_CPU(conv3D(A, B));
+  // prevent dead code elimination
+  DCE_PREVENT(B, size);
 #endif
 
   int fail = 0;

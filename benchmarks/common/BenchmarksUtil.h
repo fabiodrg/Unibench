@@ -24,7 +24,7 @@
 
 #define RUN_CPU_SEQ
 #define IN_RUNS 1
-#define SIZE 512
+#define SIZE 1024
 #endif
 
 /** Set default problem size, if undefined */
@@ -75,7 +75,7 @@
 /**
  * @brief Measures the execution time to execute the kernels function and
  * outputs to stdout
- * 
+ *
  */
 #define __BENCHMARK(DEVICE, FUNC_CALL)                                         \
   {                                                                            \
@@ -108,6 +108,25 @@
 #else
 #define LLVM_MCA_BEGIN(name)
 #define LLVM_MCA_END(name)
+#endif
+
+/**
+ * @brief Used to prevent dead-code elimination optimizations
+ * It only has to be used if a the test mode is not enabled, otherwise
+ * the computation results are used for comparasion
+ * @param array A pointer of type DATA_TYPE
+ * @param elems The number of elements in the array
+ */
+#ifndef RUN_TEST
+#define DCE_PREVENT(array, elems)                                              \
+  {                                                                            \
+    DATA_TYPE __acc = 0;                                                       \
+    for (size_t __i = 0; __i < elems; __i++)                                   \
+      __acc += array[__i];                                                     \
+    fprintf(stderr, "dead code elimination prevent: acc = %lf\n", __acc);      \
+  }
+#else
+#define DCE_PREVENT(array, elems)
 #endif
 
 // define a small float value

@@ -123,6 +123,8 @@ int main() {
   C_OMP = (DATA_TYPE *) calloc(N * M, sizeof(DATA_TYPE));
   init_C_array(C_OMP);
   BENCHMARK_OMP(syr2k_OMP(A, B, C_OMP));
+  // prevent dead-code elimination
+  DCE_PREVENT(C_OMP, N*M);
 #endif
 
 // run sequential version if enabled
@@ -130,6 +132,8 @@ int main() {
   C = (DATA_TYPE *) calloc(N * M, sizeof(DATA_TYPE));
   init_C_array(C);
   BENCHMARK_CPU(syr2k(A, B, C));
+  // prevent dead-code elimination
+  DCE_PREVENT(C, N*M);
 #endif
 
   // if TEST is enabled, then compare OMP results against sequential mode

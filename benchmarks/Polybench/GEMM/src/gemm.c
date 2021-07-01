@@ -120,6 +120,8 @@ int main(int argc, char *argv[]) {
   C_OMP = (DATA_TYPE *) calloc(NI * NJ, sizeof(DATA_TYPE));
   init_C(C_OMP);
   BENCHMARK_OMP(gemm_OMP(A, B, C_OMP));
+  // prevent dead-code elimination
+  DCE_PREVENT(C_OMP, NI*NJ);
 #endif
 
 // run sequential version if enabled
@@ -127,6 +129,8 @@ int main(int argc, char *argv[]) {
   C = (DATA_TYPE *) calloc(NI * NJ, sizeof(DATA_TYPE));
   init_C(C);
   BENCHMARK_CPU(gemm(A, B, C));
+  // prevent dead-code elimination
+  DCE_PREVENT(C, NI*NJ);
 #endif
 
   // if TEST is enabled, then compare OMP results against sequential mode

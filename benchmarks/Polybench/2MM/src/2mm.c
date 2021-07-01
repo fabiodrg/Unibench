@@ -174,6 +174,8 @@ int main(int argc, char **argv) {
   C_OMP = (DATA_TYPE *)calloc(NI * NJ, sizeof(DATA_TYPE));
   E_OMP = (DATA_TYPE *)calloc(NI * NL, sizeof(DATA_TYPE));
   BENCHMARK_OMP(mm2_OMP(A, B, C_OMP, D, E_OMP));
+  // prevent dead code elimination
+  DCE_PREVENT(E_OMP, NI*NL);
 #endif
 
 // run sequential version if enabled
@@ -181,6 +183,8 @@ int main(int argc, char **argv) {
   C = (DATA_TYPE *)calloc(NI * NJ, sizeof(DATA_TYPE));
   E = (DATA_TYPE *)calloc(NI * NL, sizeof(DATA_TYPE));
   BENCHMARK_CPU(mm2(A, B, C, D, E));
+  // prevent dead code elimination
+  DCE_PREVENT(E, NI*NL);
 #endif
 
   // if TEST is enabled, then compare OMP results against sequential mode

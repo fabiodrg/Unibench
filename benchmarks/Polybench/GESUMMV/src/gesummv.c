@@ -107,12 +107,16 @@ int main(int argc, char *argv[]) {
 #if defined(RUN_OMP_GPU) || defined(RUN_OMP_CPU)
   y_OMP = (DATA_TYPE *)calloc(N, sizeof(DATA_TYPE));
   BENCHMARK_OMP(gesummv_OMP(A, B, x, y_OMP, tmp));
+  // prevent dead-code elimination
+  DCE_PREVENT(y_OMP, N);
 #endif
 
 // run sequential version if enabled
 #ifdef RUN_CPU_SEQ
   y = (DATA_TYPE *)malloc(N * sizeof(DATA_TYPE));
   BENCHMARK_CPU(gesummv(A, B, x, y, tmp));
+  // prevent dead-code elimination
+  DCE_PREVENT(y, N);
 #endif
 
   // if TEST is enabled, then compare OMP results against sequential mode

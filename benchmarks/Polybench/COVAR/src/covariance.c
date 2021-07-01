@@ -148,6 +148,8 @@ int main() {
   data_OMP = (DATA_TYPE *)calloc((M + 1) * (N + 1), sizeof(DATA_TYPE));
   init_arrays(data_OMP);
   BENCHMARK_OMP(covariance_OMP(data_OMP, symmat_OMP, mean));
+  // prevent dead-code elimination
+  DCE_PREVENT(symmat_OMP, (M+1)*(M+1));
 #endif
 
 // run sequential version if enabled
@@ -156,6 +158,8 @@ int main() {
   data = (DATA_TYPE *)calloc((M + 1) * (N + 1), sizeof(DATA_TYPE));
   init_arrays(data);
   BENCHMARK_CPU(covariance(data, symmat, mean));
+  // prevent dead-code elimination
+  DCE_PREVENT(symmat, (M+1)*(M+1));
 #endif
 
   int fail = 0;
