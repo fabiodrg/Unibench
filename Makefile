@@ -68,8 +68,8 @@ mkdir-logs:
 ifeq "$(COMPILER)" "GNU"
 # If GNU, pass the "GCC_OFFLOAD_FLAGS"
 define compile
-	@echo "$(CC_COMMON) $(1) $(GCC_OFFLOAD_FLAGS) -D$(2) $(3) $(SRC_OBJS) -o $(4)"
-	$(CC_COMMON) $(1) $(GCC_OFFLOAD_FLAGS) -D$(2) $(3) $(SRC_OBJS) -o $(4)
+	@echo "$(CC_COMMON) $(1) $(GCC_OFFLOAD_FLAGS) -D$(2) $(3) $(SRC_OBJS) -o $(4) $(LDLIBS)"
+	$(CC_COMMON) $(1) $(GCC_OFFLOAD_FLAGS) -D$(2) $(3) $(SRC_OBJS) -o $(4) $(LDLIBS)
 endef
 else
 define compile
