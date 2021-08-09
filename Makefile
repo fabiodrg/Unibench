@@ -181,3 +181,12 @@ asm: __asm_common compile-cpu
 
 asm_omp: __asm_common compile-omp-cpu
 
+#############################################
+# Profile
+#############################################
+
+gpu-trace: compile-omp-gpu
+	@mkdir -p $(PROF_GPU_DIR)
+	nvprof --print-gpu-trace --concurrent-kernels off --profile-api-trace none \
+	--csv --log-file $(PROF_GPU_DIR)/gpu_trace_$(SIZE).csv \
+	$(OMP_GPU_BIN)

@@ -102,4 +102,8 @@ test() {
     BENCH_NAME=${kernel} make test
 }
 
+profile_gpu_trace() {
+    __invoke_make "gpu-trace"
+}
+
 "$@"

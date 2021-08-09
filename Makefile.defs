@@ -6,6 +6,8 @@ BASE_OUT_DIR=.
 BIN_DIR=${BASE_OUT_DIR}/bin/$(BENCH_NAME)
 # Directory for storing benchmark logs
 LOGS_DIR=${BASE_OUT_DIR}/logs/$(BENCH_NAME)
+# Directory for storing profiling data
+PROF_GPU_DIR=${BASE_OUT_DIR}/gpu-prof/$(BENCH_NAME)
 
 ##############################
 # Compiler settings (template)
