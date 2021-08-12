@@ -161,4 +161,4 @@ float percentDiff(double val1, double val2) {
   }
 }
 
-#endif // BENCHMARKS_UTIL_H
+#endif
