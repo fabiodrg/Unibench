@@ -213,11 +213,11 @@ int main() {
   DATA_TYPE *symmat = NULL;
   DATA_TYPE *symmat_GPU = NULL;
 
-  // init operand matrices
-  init_arrays(data);
 
 // run OMP on GPU or CPU if enabled
 #if defined(RUN_OMP_GPU) || defined(RUN_OMP_CPU)
+  // init operand matrices
+  init_arrays(data);
   symmat_GPU = (DATA_TYPE *) malloc((M + 1) * (N + 1) * sizeof(DATA_TYPE));
   BENCHMARK_OMP(correlation_OMP(data, mean, stddev, symmat_GPU));
   // prevent dead-code elimination
@@ -226,6 +226,8 @@ int main() {
 
 // run sequential version if enabled
 #ifdef RUN_CPU_SEQ
+  // init operand matrices
+  init_arrays(data);
   symmat = (DATA_TYPE *) malloc((M + 1) * (N + 1) * sizeof(DATA_TYPE));
   BENCHMARK_CPU(correlation(data, mean, stddev, symmat));
   // prevent dead-code elimination
