@@ -154,8 +154,7 @@ void mm2_OMP(DATA_TYPE *A, DATA_TYPE *B, DATA_TYPE *C, DATA_TYPE *D, DATA_TYPE *
 }
 
 int main(int argc, char **argv) {
-  fprintf(stdout,
-          "<< Linear Algebra: 2 Matrix Multiplications (C=A.B; E=C.D) >>\n");
+  SALUTE("Linear Algebra: 2 Matrix Multiplications (C=A.B; E=C.D)");
 
   // declare arrays and allocate memory
   DATA_TYPE *A = (DATA_TYPE *)malloc(NI * NK * sizeof(DATA_TYPE));

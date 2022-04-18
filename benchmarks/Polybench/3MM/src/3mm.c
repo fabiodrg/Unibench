@@ -160,9 +160,7 @@ void mm3_OMP(DATA_TYPE *A, DATA_TYPE *B, DATA_TYPE *C, DATA_TYPE *D,
 }
 
 int main(int argc, char **argv) {
-  fprintf(
-      stdout,
-      "<< Linear Algebra: 3 Matrix Multiplications (E=A.B; F=C.D; G=E.F) >>\n");
+  SALUTE("Linear Algebra: 3 Matrix Multiplications (E=A.B; F=C.D; G=E.F)");
 
   // declare arrays and allocate memory
   DATA_TYPE *A = (DATA_TYPE *)malloc(NI * NK * sizeof(DATA_TYPE));

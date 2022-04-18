@@ -1,6 +1,13 @@
 #!/bin/bash
 
-SIZES=(512 1024 2048 4096)
+export OMP_NUM_THREADS=4
+
+SIZES=(
+    "MINI"
+    "SMALL"
+    "MEDIUM"
+    "LARGE"
+)
 
 FAST_KERNELS=(
     "Polybench/2DCONV"
@@ -9,11 +16,10 @@ FAST_KERNELS=(
     "Polybench/GESUMMV"
     "Polybench/MVT"
 )
-N_FAST_RUNS=25
+N_FAST_RUNS=5
 
 SLOW_KERNELS=(
     "Polybench/2MM"
-    "Polybench/3DCONV"
     "Polybench/3MM"
     "Polybench/CORR"
     "Polybench/COVAR"
@@ -68,7 +74,6 @@ benchmark_cpu () {
 }
 
 benchmark_omp_cpu () {
-    export OMP_NUM_THREADS=4
     export OMP_PLACES=cores
     export OMP_PROC_BIND=close
     export OMP_SCHEDULE=static

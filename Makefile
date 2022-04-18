@@ -2,7 +2,7 @@
 # 
 # Environment variables
 # BENCH_NAME: The benchmark suite name and the kernel name. Should match a directory in ./benchmarks. E.g. Polybench/2MM
-# SIZE: The problem dimensions (e.g. 512, 1024, 2048, 4096)
+# SIZE: The problem dimensions (e.g. MINI, SMALL, MEDIUM, LARGE)
 # RUNS: The number of consecutive times the kernel should run
 
 ifndef IN_RUNS
@@ -83,7 +83,7 @@ endif
 # - The output binary filename
 # - Target specific compilation flags
 define device_compile
-	$(call compile,$(3),$(1),-DSIZE=$(SIZE) -DIN_RUNS=$(IN_RUNS),$(2))
+	$(call compile,$(3),$(1),-D$(SIZE) -DIN_RUNS=$(IN_RUNS),$(2))
 endef
 
 # Args:
@@ -173,7 +173,7 @@ debug-omp-cpu: __debug compile-omp-cpu
 
 __asm_common:
 	$(eval RUNS=1)
-	$(eval CC_COMMON+=-S -fverbose-asm -fopt-info-optimized-optall -masm=intel -DLLVM_MCA)
+	$(eval CC_COMMON+=-S -fverbose-asm -masm=intel)
 	$(eval CPU_SEQ_BIN=${CPU_SEQ_BIN}.s)
 	$(eval OMP_CPU_BIN=${OMP_CPU_BIN}.s)
 

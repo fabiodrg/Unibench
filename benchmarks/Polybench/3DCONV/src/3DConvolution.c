@@ -147,7 +147,7 @@ int compareResults(DATA_TYPE *B, DATA_TYPE *B_OMP) {
 }
 
 int main(int argc, char *argv[]) {
-  fprintf(stdout, ">> Three dimensional (3D) convolution <<\n");
+  SALUTE("Three dimensional (3D) convolution");
 
   // small hack to cast the macros into unsigned longs (UL) and multiply without
   // overflowing

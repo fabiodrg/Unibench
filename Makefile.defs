@@ -2,10 +2,13 @@
 ROOT_BENCH_DIR=./benchmarks
 # Directory for storing binaries for this kernel
 BASE_OUT_DIR=.
+# TMP
+OMP_NUM_THREADS?=1
+_DIR=$(COMPILER)$(OPT_FLAG)-$(OMP_NUM_THREADS)t/$(BENCH_NAME)
 # Directory for benchmark binaries
-BIN_DIR=${BASE_OUT_DIR}/bin/$(BENCH_NAME)
+BIN_DIR=${BASE_OUT_DIR}/bin/$(_DIR)
 # Directory for storing benchmark logs
-LOGS_DIR=${BASE_OUT_DIR}/logs/$(BENCH_NAME)
+LOGS_DIR=${BASE_OUT_DIR}/logs/$(_DIR)
 # Directory for storing profiling data
 PROF_GPU_DIR=${BASE_OUT_DIR}/gpu-prof/$(COMPILER)$(OPT_FLAG)/$(BENCH_NAME)
 
@@ -33,13 +36,15 @@ GCC_OFFLOAD_FLAGS=
 # Configuration for Clang compilers
 else ifeq "$(COMPILER)" "CLANG"
 CC=clang
+CC=/opt/clang-12/bin/clang
 OPT_FLAG=-O3
 CFLAGS=${OPT_FLAG} -Wall -Wno-unknown-pragmas -Wno-unused-variable
 C_INCLUDE_PATH=-I$(ROOT_BENCH_DIR)/common
 LDFLAGS=
 LDLIBS=
+LDLIBS=-Wl,-rpath,/opt/clang-12/lib
 OMP_OFFLOAD_CPU=-fopenmp
-OMP_OFFLOAD_GPU=-fopenmp -fopenmp-targets=nvptx64-nvidia-cuda -Xopenmp-target -march=sm_35
+OMP_OFFLOAD_GPU=-fopenmp -fopenmp-targets=nvptx64-nvidia-cuda -Xopenmp-target=nvptx64-nvidia-cuda -march=sm_61
 # Template for other compilers
 else
 $(error Setup the compiler and respective flags)

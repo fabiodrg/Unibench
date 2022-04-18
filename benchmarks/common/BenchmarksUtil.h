@@ -27,9 +27,26 @@
 #define SIZE 1024
 #endif
 
+/** Pre-set problem sizes */
+#ifdef _OPS_O2
+#define _SIZE_FACTOR 5
+#else
+#define _SIZE_FACTOR 1
+#endif
+
+#ifdef MINI
+#define SIZE 512*_SIZE_FACTOR
+#elif SMALL
+#define SIZE 1024*_SIZE_FACTOR
+#elif MEDIUM
+#define SIZE 2048*_SIZE_FACTOR
+#elif LARGE
+#define SIZE 4096*_SIZE_FACTOR
+#endif
+
 /** Set default problem size, if undefined */
 #ifndef SIZE
-#define SIZE 1024
+#error "No problem size set!"
 #endif
 
 /** Check if at least one device is selected */
@@ -128,6 +145,8 @@
 #else
 #define DCE_PREVENT(array, elems)
 #endif
+
+#define SALUTE(msg) fprintf(stdout, ">> %s (N=%d) <<\n", msg, SIZE)
 
 // define a small float value
 #define SMALL_FLOAT_VAL 0.00000001f

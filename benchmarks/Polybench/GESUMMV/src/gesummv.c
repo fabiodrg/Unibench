@@ -1,3 +1,4 @@
+#define _OPS_O2
 /**
  * gesummv.c: This file was adapted from PolyBench/GPU 1.0 test
  * suite to run on GPU with OpenMP 4.0 pragmas and OpenCL driver.
@@ -90,7 +91,7 @@ int compareResults(DATA_TYPE *y, DATA_TYPE *y_outputFromGpu) {
 }
 
 int main(int argc, char *argv[]) {
-  fprintf(stdout, "<< Scalar, Vector and Matrix Multiplication >>\n");
+  SALUTE("Scalar, Vector and Matrix Multiplication");
 
   // declare arrays and allocate memory for common arrays
   DATA_TYPE *A = (DATA_TYPE *)malloc(N * N * sizeof(DATA_TYPE));

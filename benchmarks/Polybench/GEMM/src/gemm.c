@@ -104,7 +104,7 @@ void gemm_OMP(DATA_TYPE *A, DATA_TYPE *B, DATA_TYPE *C) {
 }
 
 int main(int argc, char *argv[]) {
-  fprintf(stdout, "<< Matrix-multiply C=alpha.A.B+beta.C >>\n");
+  SALUTE("Matrix-multiply C=alpha.A.B+beta.C");
 
   // declare arrays and allocate memory for common arrays
   DATA_TYPE *A = (DATA_TYPE *)malloc(NI * NK * sizeof(DATA_TYPE));

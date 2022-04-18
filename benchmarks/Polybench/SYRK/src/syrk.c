@@ -104,7 +104,7 @@ void syrkOMP(DATA_TYPE *A, DATA_TYPE *C) {
 }
 
 int main() {
-  fprintf(stdout, "<< Symmetric rank-k operations >>\n");
+  SALUTE("Symmetric rank-k operations");
 
   // declare arrays and allocate memory for common arrays
   DATA_TYPE *A = (DATA_TYPE *) malloc(N * M * sizeof(DATA_TYPE));

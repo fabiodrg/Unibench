@@ -204,7 +204,7 @@ void correlation_OMP(DATA_TYPE *data, DATA_TYPE *mean, DATA_TYPE *stddev,
 }
 
 int main() {
-  fprintf(stdout, "<< Correlation Computation >>\n");
+  SALUTE("Correlation Computation");
 
   // declare arrays and allocate memory
   DATA_TYPE *data = (DATA_TYPE *) malloc((M + 1) * (N + 1) * sizeof(DATA_TYPE));

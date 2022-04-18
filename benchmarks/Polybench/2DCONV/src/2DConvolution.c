@@ -1,3 +1,4 @@
+#define _OPS_O2
 /**
  * 2DConvolution.c: This file was adapted from PolyBench/GPU 1.0 test suite
  * to run on GPU with OpenMP 4.0 pragmas and OpenCL driver.
@@ -110,7 +111,7 @@ int compareResults(DATA_TYPE *B, DATA_TYPE *B_OMP) {
 }
 
 int main(int argc, char *argv[]) {
-  fprintf(stdout, ">> Two dimensional (2D) convolution <<\n");
+  SALUTE("Two dimensional (2D) convolution");
 
   // declare arrays and allocate memory
   DATA_TYPE *A = (DATA_TYPE *)malloc(NI * NJ * sizeof(DATA_TYPE));

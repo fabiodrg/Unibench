@@ -1,3 +1,4 @@
+#define _OPS_O2
 /**
  * bicg.c: This file was adapted from PolyBench/GPU 1.0 test suite
  * to run on GPU with OpenMP 4.0 pragmas and OpenCL driver.
@@ -113,7 +114,7 @@ void bicg_OMP(DATA_TYPE *A, DATA_TYPE *r, DATA_TYPE *s, DATA_TYPE *p,
 }
 
 int main(int argc, char **argv) {
-  fprintf(stdout, "<< BiCG Sub Kernel of BiCGStab Linear Solver >>\n");
+  SALUTE("BiCG Sub Kernel of BiCGStab Linear Solver");
 
   // declare arrays and allocate memory
   DATA_TYPE *A = (DATA_TYPE *)malloc(NX * NY * sizeof(DATA_TYPE));

@@ -146,7 +146,7 @@ void runFdtd_OMP(DATA_TYPE *_fict_, DATA_TYPE *ex, DATA_TYPE *ey,
 }
 
 int main() {
-  fprintf(stdout, "<< 2-D Finite Different Time Domain Kernel >>\n");
+  SALUTE("2-D Finite Different Time Domain Kernel");
 
   // declare arrays and allocate memory
   DATA_TYPE *_fict_ = (DATA_TYPE *)calloc(tmax, sizeof(DATA_TYPE));

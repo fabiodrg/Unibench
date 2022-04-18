@@ -133,7 +133,7 @@ void covariance_OMP(DATA_TYPE *data, DATA_TYPE *symmat, DATA_TYPE *mean) {
 }
 
 int main() {
-  fprintf(stdout, "<< Covariance Computation >>\n");
+  SALUTE("Covariance Computation");
 
   // declare arrays and allocate common memory
   DATA_TYPE *data = NULL;

@@ -1,3 +1,4 @@
+#define _OPS_O2
 /**
  * atax.c: This file was adapted from PolyBench/GPU 1.0 test suite
  * to run on GPU with OpenMP 4.0 pragmas and OpenCL driver.
@@ -104,7 +105,7 @@ void atax_OMP(DATA_TYPE *A, DATA_TYPE *x, DATA_TYPE *y, DATA_TYPE *tmp) {
 }
 
 int main(int argc, char **argv) {
-  fprintf(stdout, "<< Matrix Transpose and Vector Multiplication >>\n");
+  SALUTE("Matrix Transpose and Vector Multiplication");
 
   // declare arrays and allocate memory
   DATA_TYPE *A = (DATA_TYPE *)malloc(NX * NY * sizeof(DATA_TYPE));

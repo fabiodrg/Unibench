@@ -1,3 +1,4 @@
+#define _OPS_O2
 /**
  * mvt.c: This file was adapted from PolyBench/GPU 1.0 test suite
  * to run on GPU with OpenMP 4.0 pragmas and OpenCL driver.
@@ -106,7 +107,7 @@ int compareResults(DATA_TYPE *x1, DATA_TYPE *x1_outputFromGpu, DATA_TYPE *x2,
 }
 
 int main() {
-  fprintf(stdout, "<< Matrix Vector Product and Transpose >>\n");
+  SALUTE("Matrix Vector Product and Transpose");
 
   // Declare arrays and allocate memory for common arrays
   DATA_TYPE *a = (DATA_TYPE *)malloc(N * N * sizeof(DATA_TYPE));

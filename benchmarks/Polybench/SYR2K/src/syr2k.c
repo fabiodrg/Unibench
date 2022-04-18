@@ -107,7 +107,7 @@ int compareResults(DATA_TYPE *C, DATA_TYPE *C_OMP) {
 }
 
 int main() {
-  fprintf(stdout, "<< Symmetric rank-2k operations >>\n");
+  SALUTE("Symmetric rank-2k operations");
   
   // Declare arrays and allocate memory for common arrays
   DATA_TYPE *A = (DATA_TYPE *)malloc(N * M * sizeof(DATA_TYPE));

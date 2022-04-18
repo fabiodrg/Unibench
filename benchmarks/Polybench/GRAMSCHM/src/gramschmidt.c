@@ -115,7 +115,7 @@ int compareResults(DATA_TYPE *A, DATA_TYPE *A_outputFromGpu) {
 }
 
 int main(int argc, char *argv[]) {
-  fprintf(stdout, "<< Gram-Schmidt decomposition >>\n");
+  SALUTE("Gram-Schmidt decomposition");
 
   // declare arrays and allocate memory
   DATA_TYPE *A = NULL;
